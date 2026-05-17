@@ -32,15 +32,37 @@ export interface Skin {
   imageUrl?: string;
 }
 
-export interface BreakoutWeapon {
+export type BreakoutItemCategory =
+  | 'knife'
+  | 'gun'
+  | 'outfit'
+  | 'gloves'
+  | 'profileFrame'
+  | 'title'
+  | 'bgCharacter'
+  | 'bgProfile';
+
+export interface BreakoutItem {
   id: string;
+  category: BreakoutItemCategory;
   name: string;
-  nameTh?: string;
-  category: 'rifle' | 'smg' | 'sniper' | 'melee' | 'gear';
-  imageUrl?: string;
-  hue: number;
+  imageUrl: string;
 }
 
+export type ArenaTemplateFamily = 'landscape' | 'square' | 'portrait';
+
+export interface BreakoutEditorState {
+  templateFamily: ArenaTemplateFamily;
+  variantId: number;
+  money: string;
+  price: string;
+  profileImage?: string;
+  characterImage?: string;
+  /** slotId → itemId หรือ data URL สำหรับ upload */
+  slots: Record<string, string>;
+}
+
+/** @deprecated ใช้ BreakoutEditorState */
 export interface BreakoutPosterDraft {
   accountId: string;
   priceBaht: number;

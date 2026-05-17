@@ -1,6 +1,4 @@
 import type {
-  BreakoutPosterDraft,
-  BreakoutWeapon,
   CoinPackage,
   GameId,
   Hero,
@@ -11,8 +9,6 @@ import type {
 import { GAMES } from './games';
 import rovBase from './rov/catalog.base.json';
 import mlbbBase from './mlbb/catalog.base.json';
-import breakoutCatalog from './arena-breakout/catalog.json';
-
 export { GAMES };
 
 type CatalogBundle = { heroes: Hero[]; skins: Skin[] };
@@ -98,11 +94,6 @@ export function getSkinsByHero(heroId: string) {
 export function getHero(heroId: string) {
   return [...rovCatalog.heroes, ...mlbbCatalog.heroes].find((h) => h.id === heroId);
 }
-
-export const BREAKOUT_WEAPONS = breakoutCatalog.weapons as BreakoutWeapon[];
-
-export const BREAKOUT_DEFAULT_POSTER =
-  breakoutCatalog.defaultPoster as BreakoutPosterDraft;
 
 export const COIN_PACKAGES: CoinPackage[] = [
   { id: 'p1', coins: 110, price: 100, bonus: '+10 โบนัส (10%)' },

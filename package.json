@@ -10,6 +10,7 @@
     "fetch:assets": "node scripts/fetch-skin-images.mjs",
     "fetch:assets:rov": "node scripts/fetch-skin-images.mjs --game=rov --limit=10",
     "fetch:assets:mlbb": "node scripts/fetch-skin-images.mjs --game=mlbb --limit=10",
+    "build:arena": "node scripts/build-arena-catalog.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

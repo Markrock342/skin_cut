@@ -1,42 +1,92 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Download, Plus, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Download, ImageIcon, Layers } from 'lucide-react';
+import { ARENA_TEMPLATES } from '../data/arena-breakout/templates';
+import type { BreakoutEditorState, BreakoutItemCategory } from '../data/types';
+import { BreakoutTemplateCanvas } from '../components/BreakoutTemplateCanvas';
 import {
-  BREAKOUT_DEFAULT_POSTER,
-  BREAKOUT_WEAPONS,
-} from '../data/catalog';
-import type { BreakoutPosterDraft, BreakoutWeapon } from '../data/types';
-import { BreakoutPosterCanvas } from '../components/BreakoutPosterCanvas';
+  ARENA_CATEGORY_LABELS,
+  ARENA_ITEMS_BY_CATEGORY,
+  getArenaItemsByCategory,
+} from '../lib/arena-items';
 import { exportNodeToPng } from '../lib/export-image';
 import { springSnappy } from '../lib/motion';
 
+const DEFAULT_STATE: BreakoutEditorState = {
+  templateFamily: 'landscape',
+  variantId: 1,
+  money: '5,337,322',
+  price: '1,690 ฿',
+  slots: {},
+};
+
 export function BreakoutPosterPage() {
   const posterRef = useRef<HTMLDivElement>(null);
-  const [draft, setDraft] = useState<BreakoutPosterDraft>({ ...BREAKOUT_DEFAULT_POSTER });
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    BREAKOUT_WEAPONS.slice(0, 8).map((w) => w.id),
-  );
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<'pick' | 'edit'>('pick');
+  const [state, setState] = useState<BreakoutEditorState>(DEFAULT_STATE);
+  const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('gun');
+  const [showGuide, setShowGuide] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [uploadSlot, setUploadSlot] = useState<'profile' | 'character' | null>(null);
 
-  const selectedWeapons = useMemo(
-    () =>
-      selectedIds
-        .map((id) => BREAKOUT_WEAPONS.find((w) => w.id === id))
-        .filter((w): w is BreakoutWeapon => Boolean(w)),
-    [selectedIds],
+  const template = useMemo(
+    () => ARENA_TEMPLATES.find((t) => t.id === state.templateFamily)!,
+    [state.templateFamily],
   );
 
-  const toggleWeapon = (id: string) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 12) return prev;
-      return [...prev, id];
-    });
+  const activeSlotDef = template.slots.find((s) => s.id === activeSlot);
+
+  const assignItem = (itemId: string) => {
+    if (!activeSlot) return;
+    setState((s) => ({
+      ...s,
+      slots: { ...s.slots, [activeSlot]: itemId },
+    }));
+    setActiveSlot(null);
   };
 
-  const patch = (key: keyof BreakoutPosterDraft, value: string | number) => {
-    setDraft((d) => ({ ...d, [key]: value }));
+  const handleSlotClick = useCallback(
+    (slotId: string) => {
+      const def = template.slots.find((s) => s.id === slotId);
+      if (!def) return;
+
+      if (def.category === 'upload-profile' || def.category === 'upload-character') {
+        setUploadSlot(def.category === 'upload-profile' ? 'profile' : 'character');
+        fileRef.current?.click();
+        return;
+      }
+
+      if (def.category === 'text-money' || def.category === 'text-price') {
+        setActiveSlot(slotId);
+        return;
+      }
+
+      setActiveSlot(slotId);
+      if (def.category !== 'gloves' && def.category in ARENA_ITEMS_BY_CATEGORY) {
+        setPickerCategory(def.category as BreakoutItemCategory);
+      }
+    },
+    [template.slots],
+  );
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadSlot) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      setState((s) =>
+        uploadSlot === 'profile'
+          ? { ...s, profileImage: url }
+          : { ...s, characterImage: url },
+      );
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+    setUploadSlot(null);
   };
 
   const handleExport = async () => {
@@ -45,149 +95,194 @@ export function BreakoutPosterPage() {
     try {
       await exportNodeToPng(
         posterRef.current,
-        `skincut-${draft.accountId}-${Date.now()}.png`,
+        `arena-breakout-${state.templateFamily}-v${state.variantId}.png`,
       );
     } finally {
       setExporting(false);
     }
   };
 
+  if (step === 'pick') {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <Link to="/games" className="back-link">
+          <ArrowLeft size={16} />
+          ย้อนกลับ
+        </Link>
+        <div className="page-title-block">
+          <h1>Arena Breakout — เลือกเทมเพลต</h1>
+          <p>3 แบบหลัก · แต่ละแบบมี 6 สไตล์ย่อย (รวม 18 แบบ)</p>
+        </div>
+
+        <motion.div className="ab-template-families" layout>
+          {ARENA_TEMPLATES.map((t) => (
+            <motion.button
+              key={t.id}
+              type="button"
+              className={`ab-family-card${state.templateFamily === t.id ? ' selected' : ''}`}
+              onClick={() => setState((s) => ({ ...s, templateFamily: t.id }))}
+              whileHover={{ y: -4 }}
+            >
+              <img src={t.variants[0].preview} alt="" />
+              <h3>{t.name}</h3>
+              <p>{t.description}</p>
+            </motion.button>
+          ))}
+        </motion.div>
+
+        <h3 className="ab-variant-heading">
+          <Layers size={18} />
+          เลือกสไตล์ย่อย — {template.name}
+        </h3>
+        <div className="ab-variant-grid">
+          {template.variants.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={`ab-variant-thumb${state.variantId === v.id ? ' selected' : ''}`}
+              onClick={() => setState((s) => ({ ...s, variantId: v.id }))}
+            >
+              <img src={v.preview} alt={`แบบ ${v.id}`} />
+              <span>แบบ {v.id}</span>
+            </button>
+          ))}
+        </div>
+
+        <motion.button
+          type="button"
+          className="btn-primary"
+          style={{ marginTop: 32 }}
+          onClick={() => setStep('edit')}
+        >
+          เริ่มจัดไอเทม
+        </motion.button>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div className="breakout-studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <Link to="/games" className="back-link">
-        <ArrowLeft size={16} />
-        ย้อนกลับ
-      </Link>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        hidden
+        onChange={handleFile}
+      />
 
-      <div className="page-title-block">
-        <h1>Arena Breakout — การ์ดโปรโมท</h1>
-        <p>จัดสกินปืน + สถิติบัญชี แล้ว export PNG แบบในรูปตัวอย่าง</p>
+      <div className="breakout-toolbar">
+        <Link to="/games" className="back-link">
+          <ArrowLeft size={16} />
+          เกม
+        </Link>
+        <button type="button" className="btn-ghost" onClick={() => setStep('pick')}>
+          เปลี่ยนเทมเพลต
+        </button>
+        <span className="ab-toolbar-meta">
+          {template.name} · แบบ {state.variantId}
+        </span>
+        <label className="ab-guide-toggle">
+          <input
+            type="checkbox"
+            checked={showGuide}
+            onChange={(e) => setShowGuide(e.target.checked)}
+          />
+          แสดง wireframe
+        </label>
+        <motion.button
+          type="button"
+          className="btn-primary"
+          onClick={handleExport}
+          disabled={exporting}
+          whileTap={{ scale: 0.98 }}
+        >
+          <Download size={18} />
+          {exporting ? 'กำลัง export...' : 'ดาวน์โหลด PNG'}
+        </motion.button>
       </div>
 
-      <div className="breakout-studio-grid">
-        <aside className="panel breakout-controls">
-          <h3>ข้อมูลบัญชี</h3>
-          <label className="field">
-            <span>ID บัญชี</span>
-            <input
-              value={draft.accountId}
-              onChange={(e) => patch('accountId', e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>ราคา (฿)</span>
-            <input
-              type="number"
-              value={draft.priceBaht}
-              onChange={(e) => patch('priceBaht', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>Koen</span>
-            <input
-              type="number"
-              value={draft.koen}
-              onChange={(e) => patch('koen', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>คูปอง</span>
-            <input
-              type="number"
-              value={draft.coupons}
-              onChange={(e) => patch('coupons', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>มูลค่าคลัง (M)</span>
-            <input
-              type="number"
-              step="0.1"
-              value={draft.storageM}
-              onChange={(e) => patch('storageM', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>ชั่วโมงเล่น</span>
-            <input
-              type="number"
-              value={draft.playHours}
-              onChange={(e) => patch('playHours', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>จำนวนรบ</span>
-            <input
-              type="number"
-              value={draft.raids}
-              onChange={(e) => patch('raids', Number(e.target.value))}
-            />
-          </label>
-          <label className="field">
-            <span>แรงค์</span>
-            <input
-              value={draft.rankLabel}
-              onChange={(e) => patch('rankLabel', e.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>แบนเนอร์</span>
-            <input
-              value={draft.bannerText}
-              onChange={(e) => patch('bannerText', e.target.value)}
-            />
-          </label>
-
-          <h3 style={{ marginTop: 24 }}>เลือกปืน / ของ ({selectedIds.length}/12)</h3>
-          <div className="breakout-pick-grid">
-            {BREAKOUT_WEAPONS.map((w) => {
-              const on = selectedIds.includes(w.id);
-              return (
-                <button
-                  key={w.id}
-                  type="button"
-                  className={`breakout-pick${on ? ' on' : ''}`}
-                  onClick={() => toggleWeapon(w.id)}
-                >
-                  <span
-                    className="breakout-pick-swatch"
-                    style={{
-                      background: `linear-gradient(145deg, hsl(${w.hue} 55% 40%), hsl(${w.hue} 45% 18%))`,
-                    }}
-                  />
-                  {w.name}
-                  {on ? <X size={12} /> : <Plus size={12} />}
-                </button>
-              );
-            })}
+      <div className="breakout-editor-layout">
+        <aside className="panel ab-item-library">
+          <h3>
+            <ImageIcon size={18} />
+            คลังไอเทม
+          </h3>
+          <div className="ab-cat-tabs">
+            {(Object.keys(ARENA_CATEGORY_LABELS) as BreakoutItemCategory[]).map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={pickerCategory === cat ? 'active' : ''}
+                onClick={() => setPickerCategory(cat)}
+              >
+                {ARENA_CATEGORY_LABELS[cat]}
+                <small>{getArenaItemsByCategory(cat).length}</small>
+              </button>
+            ))}
           </div>
+          <div className="ab-item-scroll">
+            {getArenaItemsByCategory(pickerCategory).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="ab-item-thumb"
+                onClick={() => activeSlot && assignItem(item.id)}
+                title={item.name}
+              >
+                <img src={item.imageUrl} alt="" loading="lazy" />
+              </button>
+            ))}
+          </div>
+          <p className="ab-hint">
+            {activeSlot
+              ? `คลิกรูปเพื่อใส่ในช่อง: ${activeSlotDef?.label ?? activeSlot}`
+              : 'คลิกช่องบนเทมเพลตก่อน แล้วเลือกรูป'}
+          </p>
 
-          <motion.button
-            type="button"
-            className="btn-primary"
-            style={{ width: '100%', marginTop: 20 }}
-            onClick={handleExport}
-            disabled={exporting || selectedWeapons.length < 4}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Download size={18} />
-            {exporting ? 'กำลังสร้าง PNG...' : 'ดาวน์โหลดการ์ด PNG'}
-          </motion.button>
+          {(activeSlot === 'money' || activeSlot === 'price') && (
+            <label className="field">
+              <span>{activeSlot === 'money' ? 'เงิน' : 'ราคา'}</span>
+              <input
+                value={activeSlot === 'money' ? state.money : state.price}
+                onChange={(e) =>
+                  setState((s) =>
+                    activeSlot === 'money'
+                      ? { ...s, money: e.target.value }
+                      : { ...s, price: e.target.value },
+                  )
+                }
+              />
+            </label>
+          )}
         </aside>
 
         <motion.div
-          className="breakout-preview-wrap"
-          initial={{ opacity: 0, y: 12 }}
+          className="ab-preview-area"
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={springSnappy}
         >
-          <BreakoutPosterCanvas
+          <BreakoutTemplateCanvas
             ref={posterRef}
-            draft={draft}
-            weapons={selectedWeapons}
+            state={state}
+            onSlotClick={handleSlotClick}
+            showGuide={showGuide}
           />
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {activeSlot && activeSlotDef && !['text-money', 'text-price'].includes(activeSlotDef.category) && (
+          <motion.div
+            className="ab-slot-toast"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            กำลังแก้: <strong>{activeSlotDef.label}</strong> — เลือกจากคลังซ้าย
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
