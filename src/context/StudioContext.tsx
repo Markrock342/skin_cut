@@ -18,6 +18,7 @@ interface StudioContextValue extends StudioState {
   addSkin: (skin: Skin) => void;
   removeSkin: (skinId: string) => void;
   reorderSkins: (from: number, to: number) => void;
+  sortSkins: (compare: (a: Skin, b: Skin) => number) => void;
   clearSkins: () => void;
   setViewSize: (n: number) => void;
   setGridFormat: (v: string) => void;
@@ -54,6 +55,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const sortSkins = useCallback((compare: (a: Skin, b: Skin) => number) => {
+    setSelectedSkins((prev) => [...prev].sort(compare));
+  }, []);
+
   const clearSkins = useCallback(() => setSelectedSkins([]), []);
 
   const isSelected = useCallback(
@@ -69,6 +74,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       addSkin,
       removeSkin,
       reorderSkins,
+      sortSkins,
       clearSkins,
       setViewSize,
       setGridFormat,
@@ -81,6 +87,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       addSkin,
       removeSkin,
       reorderSkins,
+      sortSkins,
       clearSkins,
       isSelected,
     ],
