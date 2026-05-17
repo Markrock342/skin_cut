@@ -13,6 +13,18 @@ import {
 import { exportNodeToPng } from '../lib/export-image';
 import { springSnappy } from '../lib/motion';
 
+/** ลำดับแท็บคลัง — โปรไฟล์/ตัวละครอยู่บน */
+const ARENA_TAB_ORDER: BreakoutItemCategory[] = [
+  'bgProfile',
+  'bgCharacter',
+  'knife',
+  'gun',
+  'outfit',
+  'gloves',
+  'profileFrame',
+  'title',
+];
+
 const DEFAULT_STATE: BreakoutEditorState = {
   templateFamily: 'landscape',
   variantId: 1,
@@ -27,10 +39,9 @@ export function BreakoutPosterPage() {
   const [step, setStep] = useState<'pick' | 'edit'>('pick');
   const [state, setState] = useState<BreakoutEditorState>(DEFAULT_STATE);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('gun');
-  const [showGuide, setShowGuide] = useState(false);
+  const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('bgProfile');
+  const [showSlotFrames, setShowSlotFrames] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [uploadSlot, setUploadSlot] = useState<'profile' | 'character' | null>(null);
 
   const template = useMemo(
     () => ARENA_TEMPLATES.find((t) => t.id === state.templateFamily)!,
@@ -53,12 +64,6 @@ export function BreakoutPosterPage() {
       const def = template.slots.find((s) => s.id === slotId);
       if (!def) return;
 
-      if (def.category === 'upload-profile' || def.category === 'upload-character') {
-        setUploadSlot(def.category === 'upload-profile' ? 'profile' : 'character');
-        fileRef.current?.click();
-        return;
-      }
-
       if (def.category === 'text-money' || def.category === 'text-price') {
         setActiveSlot(slotId);
         return;
@@ -74,20 +79,21 @@ export function BreakoutPosterPage() {
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !uploadSlot) return;
+    if (!file || !activeSlot) return;
     const reader = new FileReader();
     reader.onload = () => {
       const url = reader.result as string;
-      setState((s) =>
-        uploadSlot === 'profile'
-          ? { ...s, profileImage: url }
-          : { ...s, characterImage: url },
-      );
+      setState((s) => ({
+        ...s,
+        slots: { ...s.slots, [activeSlot]: url },
+      }));
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-    setUploadSlot(null);
   };
+
+  const canUploadSlot =
+    activeSlot === 'profile' || activeSlot === 'character';
 
   const handleExport = async () => {
     if (!posterRef.current) return;
@@ -184,10 +190,10 @@ export function BreakoutPosterPage() {
         <label className="ab-guide-toggle">
           <input
             type="checkbox"
-            checked={showGuide}
-            onChange={(e) => setShowGuide(e.target.checked)}
+            checked={showSlotFrames}
+            onChange={(e) => setShowSlotFrames(e.target.checked)}
           />
-          แสดง wireframe
+          แสดงกรอบช่อง
         </label>
         <motion.button
           type="button"
@@ -203,12 +209,38 @@ export function BreakoutPosterPage() {
 
       <div className="breakout-editor-layout">
         <aside className="panel ab-item-library">
+          <div className="ab-text-fields">
+            <h3>เงิน / ราคา</h3>
+            <label className="field">
+              <span>เงินในเกม</span>
+              <input
+                value={state.money}
+                onChange={(e) => setState((s) => ({ ...s, money: e.target.value }))}
+                onFocus={() => setActiveSlot('money')}
+                placeholder="เช่น 5,337,322"
+              />
+            </label>
+            <label className="field">
+              <span>ราคาขาย</span>
+              <input
+                value={state.price}
+                onChange={(e) => setState((s) => ({ ...s, price: e.target.value }))}
+                onFocus={() => setActiveSlot('price')}
+                placeholder="เช่น 1,690 ฿"
+              />
+            </label>
+            <p className="ab-studio-tip">
+              เทมเพลต = พื้นหลัง · คลิกช่องแล้วเลือกรูป · โปรไฟล์/ตัวละครจากคลัง
+              พื้นหลังโปรไฟล์ / พื้นหลังตัวละคร
+            </p>
+          </div>
+
           <h3>
             <ImageIcon size={18} />
             คลังไอเทม
           </h3>
           <div className="ab-cat-tabs">
-            {(Object.keys(ARENA_CATEGORY_LABELS) as BreakoutItemCategory[]).map((cat) => (
+            {ARENA_TAB_ORDER.map((cat) => (
               <button
                 key={cat}
                 type="button"
@@ -239,20 +271,14 @@ export function BreakoutPosterPage() {
               : 'คลิกช่องบนเทมเพลตก่อน แล้วเลือกรูป'}
           </p>
 
-          {(activeSlot === 'money' || activeSlot === 'price') && (
-            <label className="field">
-              <span>{activeSlot === 'money' ? 'เงิน' : 'ราคา'}</span>
-              <input
-                value={activeSlot === 'money' ? state.money : state.price}
-                onChange={(e) =>
-                  setState((s) =>
-                    activeSlot === 'money'
-                      ? { ...s, money: e.target.value }
-                      : { ...s, price: e.target.value },
-                  )
-                }
-              />
-            </label>
+          {canUploadSlot && (
+            <button
+              type="button"
+              className="btn-ghost ab-upload-fallback"
+              onClick={() => fileRef.current?.click()}
+            >
+              อัปโหลด PNG เอง (ถ้าไม่มีในคลัง)
+            </button>
           )}
         </aside>
 
@@ -265,8 +291,14 @@ export function BreakoutPosterPage() {
           <BreakoutTemplateCanvas
             ref={posterRef}
             state={state}
+            activeSlotId={activeSlot}
             onSlotClick={handleSlotClick}
-            showGuide={showGuide}
+            onTextChange={(slotId, value) =>
+              setState((s) =>
+                slotId === 'money' ? { ...s, money: value } : { ...s, price: value },
+              )
+            }
+            showSlotFrames={showSlotFrames}
           />
         </motion.div>
       </div>

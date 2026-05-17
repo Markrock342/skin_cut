@@ -2,8 +2,6 @@ import type { ArenaTemplateFamily, BreakoutItemCategory } from '../types';
 
 export type BreakoutSlotCategory =
   | BreakoutItemCategory
-  | 'upload-profile'
-  | 'upload-character'
   | 'text-money'
   | 'text-price';
 
@@ -30,8 +28,8 @@ const variantPaths = (family: string, prefix: string, count = 6) =>
 
 /** แนวนอน — กริดใหญ่ (สกินปืน 20 ช่อง) */
 const landscapeSlots: BreakoutSlotDef[] = [
-  { id: 'profile', label: 'โปรไฟล์', category: 'upload-profile' },
-  { id: 'character', label: 'ตัวละคร', category: 'upload-character' },
+  { id: 'profile', label: 'โปรไฟล์', category: 'bgProfile' },
+  { id: 'character', label: 'ตัวละคร', category: 'bgCharacter' },
   { id: 'knife-lg-0', label: 'สกินมีด', category: 'knife' },
   { id: 'knife-lg-1', label: 'สกินมีด', category: 'knife' },
   { id: 'knife-sm-0', label: 'สกินมีด', category: 'knife' },
@@ -60,8 +58,8 @@ const landscapeSlots: BreakoutSlotDef[] = [
 
 /** สี่เหลี่ยม — กะทัดรัด */
 const squareSlots: BreakoutSlotDef[] = [
-  { id: 'profile', label: 'โปรไฟล์', category: 'upload-profile' },
-  { id: 'character', label: 'ตัวละคร', category: 'upload-character' },
+  { id: 'profile', label: 'โปรไฟล์', category: 'bgProfile' },
+  { id: 'character', label: 'ตัวละคร', category: 'bgCharacter' },
   { id: 'knife-lg-0', label: 'สกินมีด', category: 'knife' },
   { id: 'price', label: 'ราคา', category: 'text-price' },
   { id: 'money', label: 'เงิน', category: 'text-money' },
@@ -80,8 +78,8 @@ const squareSlots: BreakoutSlotDef[] = [
 
 /** แนวตั้ง — เต็มรูปแบบ + ของแดง */
 const portraitSlots: BreakoutSlotDef[] = [
-  { id: 'profile', label: 'โปรไฟล์', category: 'upload-profile' },
-  { id: 'character', label: 'ตัวละคร', category: 'upload-character' },
+  { id: 'profile', label: 'โปรไฟล์', category: 'bgProfile' },
+  { id: 'character', label: 'ตัวละคร', category: 'bgCharacter' },
   { id: 'money', label: 'เงิน', category: 'text-money' },
   { id: 'price', label: 'ราคา', category: 'text-price' },
   { id: 'knife-lg-0', label: 'สกินมีด', category: 'knife' },

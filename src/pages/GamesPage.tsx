@@ -16,10 +16,10 @@ export function GamesPage() {
     >
       <motion.div className="page-title-block" variants={fadeUp} initial="hidden" animate="show">
         <h1>เลือกเกม</h1>
-        <p>ROV · MLBB · Arena Breakout — เลือกโหมดสร้างภาพ</p>
+        <p>เลือกเกมที่คุณต้องการสร้างกริดสกิน</p>
       </motion.div>
 
-      <div className="segmented" role="tablist">
+      <motion.div className="segmented" role="tablist" variants={fadeUp} initial="hidden" animate="show">
         <button
           type="button"
           role="tab"
@@ -40,7 +40,7 @@ export function GamesPage() {
           <Store size={16} />
           ร้านค้า
         </button>
-      </div>
+      </motion.div>
 
       {tab === 'shop' ? (
         <motion.p
@@ -60,18 +60,26 @@ export function GamesPage() {
           {GAMES.map((game) => (
             <motion.div key={game.id} variants={fadeUp}>
               <Link to={`/studio/${game.id}`} className="game-card">
-                <div
-                  className="game-card-art"
-                  style={{ background: game.gradient }}
+                <motion.div
+                  className={
+                    game.cardImageFit === 'contain'
+                      ? 'game-card-art game-card-art--logo'
+                      : 'game-card-art'
+                  }
+                  style={
+                    game.cardImageFit === 'contain'
+                      ? undefined
+                      : { background: game.gradient }
+                  }
                 >
-                  {game.shortName}
-                </div>
-                <div className="game-card-label">
-                  {game.shortName}
-                  <span className="game-card-mode">
-                    {game.mode === 'account-poster' ? 'การ์ดบัญชี' : 'กริดสกิน'}
-                  </span>
-                </div>
+                  <img
+                    src={game.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                  />
+                </motion.div>
+                <div className="game-card-label">{game.cardTitle}</div>
               </Link>
             </motion.div>
           ))}

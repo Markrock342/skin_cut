@@ -8,10 +8,16 @@ export interface Game {
   id: GameId;
   name: string;
   shortName: string;
+  /** ชื่อใต้การ์ดบนหน้าเลือกเกม */
+  cardTitle: string;
   description: string;
   gradient: string;
   accent: string;
   mode: GameMode;
+  /** รูปการ์ด (จาก SortSkin R2 หรือ local) */
+  imageUrl: string;
+  /** โลโก้บนพื้นดำ — ใช้ contain แทน cover */
+  cardImageFit?: 'cover' | 'contain';
 }
 
 export interface Hero {

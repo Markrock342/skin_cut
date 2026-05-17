@@ -5,7 +5,7 @@ export async function exportNodeToPng(node: HTMLElement, filename: string) {
     scale: 2,
     useCORS: true,
     allowTaint: true,
-    backgroundColor: '#0a0c0a',
+    backgroundColor: null,
     logging: false,
   });
 
