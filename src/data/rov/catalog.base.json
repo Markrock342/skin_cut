@@ -1,0 +1,10 @@
+{
+  "heroes": [
+    { "id": "airi", "gameId": "rov", "name": "Airi", "skinCount": 6, "wikiTitle": "Airi" },
+    { "id": "aleister", "gameId": "rov", "name": "Aleister", "skinCount": 6, "wikiTitle": "Aleister" },
+    { "id": "alice", "gameId": "rov", "name": "Alice", "skinCount": 6, "wikiTitle": "Alice" },
+    { "id": "angela", "gameId": "rov", "name": "Angela", "skinCount": 6, "wikiTitle": "Angela" },
+    { "id": "nakroth", "gameId": "rov", "name": "Nakroth", "skinCount": 6, "wikiTitle": "Nakroth" }
+  ],
+  "skins": []
+}

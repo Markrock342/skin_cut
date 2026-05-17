@@ -16,7 +16,7 @@ export function GamesPage() {
     >
       <motion.div className="page-title-block" variants={fadeUp} initial="hidden" animate="show">
         <h1>เลือกเกม</h1>
-        <p>เลือกเกมที่ต้องการสร้างกริดสกิน</p>
+        <p>ROV · MLBB · Arena Breakout — เลือกโหมดสร้างภาพ</p>
       </motion.div>
 
       <div className="segmented" role="tablist">
@@ -66,7 +66,12 @@ export function GamesPage() {
                 >
                   {game.shortName}
                 </div>
-                <div className="game-card-label">{game.shortName}</div>
+                <div className="game-card-label">
+                  {game.shortName}
+                  <span className="game-card-mode">
+                    {game.mode === 'account-poster' ? 'การ์ดบัญชี' : 'กริดสกิน'}
+                  </span>
+                </div>
               </Link>
             </motion.div>
           ))}

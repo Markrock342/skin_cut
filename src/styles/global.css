@@ -722,6 +722,242 @@ select {
     hsl(calc(var(--hue) + 40) 60% 22%) 100%
   );
   position: relative;
+  overflow: hidden;
+}
+
+.skin-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.game-card-mode {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* —— Arena Breakout poster —— */
+.breakout-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.breakout-controls .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.breakout-controls .field input {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.breakout-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.breakout-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s var(--spring);
+}
+
+.breakout-pick.on {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.breakout-pick-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.breakout-preview-wrap {
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.breakout-poster {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  background: linear-gradient(165deg, #1a1f18 0%, #0a0c0a 45%, #12100a 100%);
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  color: #f5f5f4;
+  font-family: var(--font-body);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+.breakout-poster__banner {
+  background: linear-gradient(90deg, #b91c1c, #dc2626);
+  color: #fff;
+  text-align: center;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.breakout-poster__body {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 0.9fr;
+  gap: 12px;
+  padding: 16px;
+  min-height: 420px;
+}
+
+.breakout-poster__contact {
+  font-size: 0.7rem;
+  color: #a8a29e;
+  margin-bottom: 10px;
+}
+
+.breakout-weapon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.breakout-weapon-cell {
+  text-align: center;
+  font-size: 0.65rem;
+}
+
+.breakout-weapon-cell img,
+.breakout-weapon-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 4px;
+}
+
+.breakout-poster__id {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.breakout-poster__koen {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fde68a;
+  margin: 8px 0;
+}
+
+.breakout-poster__coupons {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.breakout-poster__coupons span:first-child {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.breakout-poster__coupons .muted {
+  color: #a8a29e;
+  font-size: 0.85rem;
+}
+
+.breakout-poster__stats {
+  display: grid;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.breakout-poster__stats strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.breakout-poster__stats span {
+  color: #a8a29e;
+  font-size: 0.75rem;
+}
+
+.breakout-poster__rank {
+  margin-top: 16px;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  font-weight: 700;
+}
+
+.breakout-poster__right {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.breakout-poster__character {
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(74, 222, 128, 0.15) 0%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.breakout-poster__price {
+  background: #dc2626;
+  color: #fff;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  padding: 14px;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 900px) {
+  .breakout-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .breakout-poster__body {
+    grid-template-columns: 1fr;
+  }
 }
 
 .skin-card-art::after {

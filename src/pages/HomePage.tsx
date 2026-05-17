@@ -94,7 +94,7 @@ export function HomePage() {
       <section style={{ marginTop: 80 }}>
         <div className="section-head">
           <h2>ทำอะไรได้บ้าง</h2>
-          <p>เครื่องมือสำหรับแฟน ROV &amp; MLBB โดยเฉพาะ</p>
+          <p>ROV · MLBB · Arena Breakout — เครื่องมือสร้างภาพสำหรับแฟนเกม</p>
         </div>
 
         <motion.div

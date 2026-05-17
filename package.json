@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "fetch:assets": "node scripts/fetch-skin-images.mjs",
+    "fetch:assets:rov": "node scripts/fetch-skin-images.mjs --game=rov --limit=10",
+    "fetch:assets:mlbb": "node scripts/fetch-skin-images.mjs --game=mlbb --limit=10",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -14,6 +17,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

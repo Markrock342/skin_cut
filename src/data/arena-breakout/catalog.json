@@ -1,0 +1,28 @@
+{
+  "weapons": [
+    { "id": "akm", "name": "AKM", "nameTh": "AKM", "category": "rifle", "hue": 12 },
+    { "id": "m4a1", "name": "M4A1", "nameTh": "M4A1", "category": "rifle", "hue": 200 },
+    { "id": "aug", "name": "AUG", "nameTh": "AUG", "category": "rifle", "hue": 140 },
+    { "id": "fal", "name": "FAL", "nameTh": "FAL", "category": "rifle", "hue": 45 },
+    { "id": "mpx", "name": "MPX", "nameTh": "MPX", "category": "smg", "hue": 280 },
+    { "id": "ax50", "name": "AX50", "nameTh": "AX50", "category": "sniper", "hue": 90 },
+    { "id": "mk14", "name": "Mk14", "nameTh": "Mk14", "category": "sniper", "hue": 320 },
+    { "id": "melee-katana", "name": "Katana", "nameTh": "ดาบ", "category": "melee", "hue": 30 },
+    { "id": "helmet-6", "name": "6B47", "nameTh": "หมวก", "category": "gear", "hue": 160 },
+    { "id": "vest-tactical", "name": "Tactical Vest", "nameTh": "เสื้อเกราะ", "category": "gear", "hue": 210 },
+    { "id": "h416", "name": "H416", "nameTh": "H416", "category": "rifle", "hue": 55 },
+    { "id": "ar57", "name": "AR57", "nameTh": "AR57", "category": "rifle", "hue": 300 }
+  ],
+  "defaultPoster": {
+    "accountId": "ID119",
+    "priceBaht": 1690,
+    "koen": 5337322,
+    "coupons": 640,
+    "storageM": 8.2,
+    "playHours": 107,
+    "raids": 597,
+    "rankLabel": "Gold",
+    "bannerText": "สกินปืนมีเพียบ — เพิ่มเติมแชท",
+    "contactLine": "Facebook: SkinCut Community"
+  }
+}

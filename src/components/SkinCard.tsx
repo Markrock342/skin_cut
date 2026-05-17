@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Skin } from '../data/types';
@@ -27,6 +28,9 @@ export function SkinCard({
   onRemove,
   layoutId,
 }: SkinCardProps) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = skin.imageUrl && !imgFailed;
+
   return (
     <motion.article
       layoutId={layoutId}
@@ -60,6 +64,16 @@ export function SkinCard({
         </button>
       )}
       <motion.div className="skin-card-art" layout="position">
+        {showImage ? (
+          <img
+            className="skin-card-img"
+            src={skin.imageUrl}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+          />
+        ) : null}
         <span className={`skin-tier-badge ${skin.tier}`}>{tierLabel(skin.tier)}</span>
         {rank != null && <span className="skin-rank">{rank}</span>}
       </motion.div>

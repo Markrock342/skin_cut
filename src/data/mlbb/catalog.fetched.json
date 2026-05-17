@@ -1,0 +1,351 @@
+{
+  "heroes": [
+    {
+      "id": "layla",
+      "gameId": "mlbb",
+      "name": "Layla",
+      "skinCount": 12,
+      "wikiTitle": "Layla"
+    },
+    {
+      "id": "miya",
+      "gameId": "mlbb",
+      "name": "Miya",
+      "skinCount": 12,
+      "wikiTitle": "Miya"
+    },
+    {
+      "id": "gusion",
+      "gameId": "mlbb",
+      "name": "Gusion",
+      "skinCount": 12,
+      "wikiTitle": "Gusion"
+    }
+  ],
+  "skins": [
+    {
+      "id": "layla-skin-0",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Ahaha",
+      "tier": "limited",
+      "hue": 185,
+      "imageUrl": "/assets/mlbb/layla/0.jpg"
+    },
+    {
+      "id": "layla-skin-1",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Battle Emote - Ahaha",
+      "tier": "ultimate",
+      "hue": 208,
+      "imageUrl": "/assets/mlbb/layla/1.jpg"
+    },
+    {
+      "id": "layla-skin-2",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Battle Points",
+      "tier": "mythic",
+      "hue": 231,
+      "imageUrl": "/assets/mlbb/layla/2.jpg"
+    },
+    {
+      "id": "layla-skin-3",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Carry Me to the End",
+      "tier": "epic",
+      "hue": 254,
+      "imageUrl": "/assets/mlbb/layla/3.jpg"
+    },
+    {
+      "id": "layla-skin-4",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Come & Hit Me!",
+      "tier": "elite",
+      "hue": 277,
+      "imageUrl": "/assets/mlbb/layla/4.jpg"
+    },
+    {
+      "id": "layla-skin-5",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Destruction Rush",
+      "tier": "normal",
+      "hue": 300,
+      "imageUrl": "/assets/mlbb/layla/5.jpg"
+    },
+    {
+      "id": "layla-skin-6",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Destruction Rush (The Aspirants)",
+      "tier": "limited",
+      "hue": 323,
+      "imageUrl": "/assets/mlbb/layla/6.jpg"
+    },
+    {
+      "id": "layla-skin-7",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Diamond",
+      "tier": "ultimate",
+      "hue": 346,
+      "imageUrl": "/assets/mlbb/layla/7.jpg"
+    },
+    {
+      "id": "layla-skin-8",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Game Profile CN Layla",
+      "tier": "mythic",
+      "hue": 9,
+      "imageUrl": "/assets/mlbb/layla/8.jpg"
+    },
+    {
+      "id": "layla-skin-9",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Gold Lane",
+      "tier": "epic",
+      "hue": 32,
+      "imageUrl": "/assets/mlbb/layla/9.jpg"
+    },
+    {
+      "id": "layla-skin-10",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "Good job!",
+      "tier": "elite",
+      "hue": 55,
+      "imageUrl": "/assets/mlbb/layla/10.jpg"
+    },
+    {
+      "id": "layla-skin-11",
+      "heroId": "layla",
+      "gameId": "mlbb",
+      "name": "HEH HEH",
+      "tier": "normal",
+      "hue": 78,
+      "imageUrl": "/assets/mlbb/layla/11.jpg"
+    },
+    {
+      "id": "miya-skin-0",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Arrow of Eclipse",
+      "tier": "limited",
+      "hue": 148,
+      "imageUrl": "/assets/mlbb/miya/0.jpg"
+    },
+    {
+      "id": "miya-skin-1",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Arrow of Eclipse (Legend)",
+      "tier": "ultimate",
+      "hue": 171,
+      "imageUrl": "/assets/mlbb/miya/1.jpg"
+    },
+    {
+      "id": "miya-skin-2",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Basic Attack",
+      "tier": "mythic",
+      "hue": 194,
+      "imageUrl": "/assets/mlbb/miya/2.jpg"
+    },
+    {
+      "id": "miya-skin-3",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Battle Emote - Guiding Arrow",
+      "tier": "epic",
+      "hue": 217,
+      "imageUrl": "/assets/mlbb/miya/3.jpg"
+    },
+    {
+      "id": "miya-skin-4",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Battle Emote - Let's Go on a Date!",
+      "tier": "elite",
+      "hue": 240,
+      "imageUrl": "/assets/mlbb/miya/4.jpg"
+    },
+    {
+      "id": "miya-skin-5",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Battle Emote - MRO That's Me, Alright",
+      "tier": "normal",
+      "hue": 263,
+      "imageUrl": "/assets/mlbb/miya/5.jpg"
+    },
+    {
+      "id": "miya-skin-6",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Battle Points",
+      "tier": "limited",
+      "hue": 286,
+      "imageUrl": "/assets/mlbb/miya/6.jpg"
+    },
+    {
+      "id": "miya-skin-7",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Game Profile CN Miya",
+      "tier": "ultimate",
+      "hue": 309,
+      "imageUrl": "/assets/mlbb/miya/7.jpg"
+    },
+    {
+      "id": "miya-skin-8",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Gold Lane",
+      "tier": "mythic",
+      "hue": 332,
+      "imageUrl": "/assets/mlbb/miya/8.jpg"
+    },
+    {
+      "id": "miya-skin-9",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Hero011-portrait",
+      "tier": "epic",
+      "hue": 355,
+      "imageUrl": "/assets/mlbb/miya/9.jpg"
+    },
+    {
+      "id": "miya-skin-10",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Hero Revamp - September Project NEXT Express -1 ",
+      "tier": "elite",
+      "hue": 18,
+      "imageUrl": "/assets/mlbb/miya/10.jpg"
+    },
+    {
+      "id": "miya-skin-11",
+      "heroId": "miya",
+      "gameId": "mlbb",
+      "name": "Hero Spotlight - Miya - Mobile Legends- Bang Ban",
+      "tier": "normal",
+      "hue": 41,
+      "imageUrl": "/assets/mlbb/miya/11.jpg"
+    },
+    {
+      "id": "gusion-skin-0",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Aamon's full story analysis! How important is Gu",
+      "tier": "limited",
+      "hue": 222,
+      "imageUrl": "/assets/mlbb/gusion/0.jpg"
+    },
+    {
+      "id": "gusion-skin-1",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Aamon Lesley Gusion age",
+      "tier": "ultimate",
+      "hue": 245,
+      "imageUrl": "/assets/mlbb/gusion/1.jpg"
+    },
+    {
+      "id": "gusion-skin-2",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Basic Attack",
+      "tier": "mythic",
+      "hue": 268,
+      "imageUrl": "/assets/mlbb/gusion/2.jpg"
+    },
+    {
+      "id": "gusion-skin-3",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Battle Emote - Ready for the explosion!",
+      "tier": "epic",
+      "hue": 291,
+      "imageUrl": "/assets/mlbb/gusion/3.jpg"
+    },
+    {
+      "id": "gusion-skin-4",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Battle Points",
+      "tier": "elite",
+      "hue": 314,
+      "imageUrl": "/assets/mlbb/gusion/4.jpg"
+    },
+    {
+      "id": "gusion-skin-5",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Dagger Specialist",
+      "tier": "normal",
+      "hue": 337,
+      "imageUrl": "/assets/mlbb/gusion/5.jpg"
+    },
+    {
+      "id": "gusion-skin-6",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Dagger Specialist (KOF)",
+      "tier": "limited",
+      "hue": 0,
+      "imageUrl": "/assets/mlbb/gusion/6.jpg"
+    },
+    {
+      "id": "gusion-skin-7",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Dagger Specialist (Legend)",
+      "tier": "ultimate",
+      "hue": 23,
+      "imageUrl": "/assets/mlbb/gusion/7.jpg"
+    },
+    {
+      "id": "gusion-skin-8",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Diamond",
+      "tier": "mythic",
+      "hue": 46,
+      "imageUrl": "/assets/mlbb/gusion/8.jpg"
+    },
+    {
+      "id": "gusion-skin-9",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Fate Deniers- The Origin - Animated Trailer - Mo",
+      "tier": "epic",
+      "hue": 69,
+      "imageUrl": "/assets/mlbb/gusion/9.jpg"
+    },
+    {
+      "id": "gusion-skin-10",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Fate Deniers- The Ultimate Fight - Cinematic Tra",
+      "tier": "elite",
+      "hue": 92,
+      "imageUrl": "/assets/mlbb/gusion/10.jpg"
+    },
+    {
+      "id": "gusion-skin-11",
+      "heroId": "gusion",
+      "gameId": "mlbb",
+      "name": "Fire Master",
+      "tier": "normal",
+      "hue": 115,
+      "imageUrl": "/assets/mlbb/gusion/11.jpg"
+    }
+  ]
+}

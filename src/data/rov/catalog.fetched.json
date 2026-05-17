@@ -1,0 +1,351 @@
+{
+  "heroes": [
+    {
+      "id": "airi",
+      "gameId": "rov",
+      "name": "Airi",
+      "skinCount": 12,
+      "wikiTitle": "Airi"
+    },
+    {
+      "id": "aleister",
+      "gameId": "rov",
+      "name": "Aleister",
+      "skinCount": 12,
+      "wikiTitle": "Aleister"
+    },
+    {
+      "id": "alice",
+      "gameId": "rov",
+      "name": "Alice",
+      "skinCount": 12,
+      "wikiTitle": "Alice"
+    }
+  ],
+  "skins": [
+    {
+      "id": "airi-skin-0",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Airi",
+      "tier": "limited",
+      "hue": 148,
+      "imageUrl": "/assets/rov/airi/0.jpg"
+    },
+    {
+      "id": "airi-skin-1",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Airi Sakura Fubuki",
+      "tier": "ultimate",
+      "hue": 171,
+      "imageUrl": "/assets/rov/airi/1.jpg"
+    },
+    {
+      "id": "airi-skin-2",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Airi Splash Art",
+      "tier": "mythic",
+      "hue": 194,
+      "imageUrl": "/assets/rov/airi/2.jpg"
+    },
+    {
+      "id": "airi-skin-3",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "AoV Execute",
+      "tier": "epic",
+      "hue": 217,
+      "imageUrl": "/assets/rov/airi/3.jpg"
+    },
+    {
+      "id": "airi-skin-4",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "AoV Flicker",
+      "tier": "elite",
+      "hue": 240,
+      "imageUrl": "/assets/rov/airi/4.jpg"
+    },
+    {
+      "id": "airi-skin-5",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Assassinate 1",
+      "tier": "normal",
+      "hue": 263,
+      "imageUrl": "/assets/rov/airi/5.jpg"
+    },
+    {
+      "id": "airi-skin-6",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Bloodraid",
+      "tier": "limited",
+      "hue": 286,
+      "imageUrl": "/assets/rov/airi/6.jpg"
+    },
+    {
+      "id": "airi-skin-7",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Ceremonial Dragon",
+      "tier": "ultimate",
+      "hue": 309,
+      "imageUrl": "/assets/rov/airi/7.jpg"
+    },
+    {
+      "id": "airi-skin-8",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Curse of Death (ENCHANTMENT)",
+      "tier": "mythic",
+      "hue": 332,
+      "imageUrl": "/assets/rov/airi/8.jpg"
+    },
+    {
+      "id": "airi-skin-9",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Curse of death",
+      "tier": "epic",
+      "hue": 355,
+      "imageUrl": "/assets/rov/airi/9.jpg"
+    },
+    {
+      "id": "airi-skin-10",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Deadly Claw",
+      "tier": "elite",
+      "hue": 18,
+      "imageUrl": "/assets/rov/airi/10.jpg"
+    },
+    {
+      "id": "airi-skin-11",
+      "heroId": "airi",
+      "gameId": "rov",
+      "name": "Enhanced Restore (ENCHANT)",
+      "tier": "normal",
+      "hue": 41,
+      "imageUrl": "/assets/rov/airi/11.jpg"
+    },
+    {
+      "id": "aleister-skin-0",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Aleister",
+      "tier": "limited",
+      "hue": 296,
+      "imageUrl": "/assets/rov/aleister/0.jpg"
+    },
+    {
+      "id": "aleister-skin-1",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Aleister Default Skin",
+      "tier": "ultimate",
+      "hue": 319,
+      "imageUrl": "/assets/rov/aleister/1.jpg"
+    },
+    {
+      "id": "aleister-skin-2",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Aleister Splash Art",
+      "tier": "mythic",
+      "hue": 342,
+      "imageUrl": "/assets/rov/aleister/2.jpg"
+    },
+    {
+      "id": "aleister-skin-3",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Aleister Triumphant",
+      "tier": "epic",
+      "hue": 5,
+      "imageUrl": "/assets/rov/aleister/3.jpg"
+    },
+    {
+      "id": "aleister-skin-4",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Aleister Voidweaver",
+      "tier": "elite",
+      "hue": 28,
+      "imageUrl": "/assets/rov/aleister/4.jpg"
+    },
+    {
+      "id": "aleister-skin-5",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "AoV Flicker",
+      "tier": "normal",
+      "hue": 51,
+      "imageUrl": "/assets/rov/aleister/5.jpg"
+    },
+    {
+      "id": "aleister-skin-6",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Axe of Sacrifice (ENCHANT)",
+      "tier": "limited",
+      "hue": 74,
+      "imageUrl": "/assets/rov/aleister/6.jpg"
+    },
+    {
+      "id": "aleister-skin-7",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Berith s agony",
+      "tier": "ultimate",
+      "hue": 97,
+      "imageUrl": "/assets/rov/aleister/7.jpg"
+    },
+    {
+      "id": "aleister-skin-8",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Boomstick",
+      "tier": "mythic",
+      "hue": 120,
+      "imageUrl": "/assets/rov/aleister/8.jpg"
+    },
+    {
+      "id": "aleister-skin-9",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Deadly Claw",
+      "tier": "epic",
+      "hue": 143,
+      "imageUrl": "/assets/rov/aleister/9.jpg"
+    },
+    {
+      "id": "aleister-skin-10",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Enchanted Kicks",
+      "tier": "elite",
+      "hue": 166,
+      "imageUrl": "/assets/rov/aleister/10.jpg"
+    },
+    {
+      "id": "aleister-skin-11",
+      "heroId": "aleister",
+      "gameId": "rov",
+      "name": "Enhanced Restore (ENCHANT)",
+      "tier": "normal",
+      "hue": 189,
+      "imageUrl": "/assets/rov/aleister/11.jpg"
+    },
+    {
+      "id": "alice-skin-0",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Alice",
+      "tier": "limited",
+      "hue": 185,
+      "imageUrl": "/assets/rov/alice/0.jpg"
+    },
+    {
+      "id": "alice-skin-1",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Alice Splash Art",
+      "tier": "ultimate",
+      "hue": 208,
+      "imageUrl": "/assets/rov/alice/1.jpg"
+    },
+    {
+      "id": "alice-skin-2",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Alice profile",
+      "tier": "mythic",
+      "hue": 231,
+      "imageUrl": "/assets/rov/alice/2.jpg"
+    },
+    {
+      "id": "alice-skin-3",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "AoV Flicker",
+      "tier": "epic",
+      "hue": 254,
+      "imageUrl": "/assets/rov/alice/3.jpg"
+    },
+    {
+      "id": "alice-skin-4",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "AoV Heal",
+      "tier": "elite",
+      "hue": 277,
+      "imageUrl": "/assets/rov/alice/4.jpg"
+    },
+    {
+      "id": "alice-skin-5",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Berith s agony",
+      "tier": "normal",
+      "hue": 300,
+      "imageUrl": "/assets/rov/alice/5.jpg"
+    },
+    {
+      "id": "alice-skin-6",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Boomstick",
+      "tier": "limited",
+      "hue": 323,
+      "imageUrl": "/assets/rov/alice/6.jpg"
+    },
+    {
+      "id": "alice-skin-7",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Enchanted Kicks",
+      "tier": "ultimate",
+      "hue": 346,
+      "imageUrl": "/assets/rov/alice/7.jpg"
+    },
+    {
+      "id": "alice-skin-8",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Enhanced Restore (ENCHANT)",
+      "tier": "mythic",
+      "hue": 9,
+      "imageUrl": "/assets/rov/alice/8.jpg"
+    },
+    {
+      "id": "alice-skin-9",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Evil Secrets",
+      "tier": "epic",
+      "hue": 32,
+      "imageUrl": "/assets/rov/alice/9.jpg"
+    },
+    {
+      "id": "alice-skin-10",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Flurry 1",
+      "tier": "elite",
+      "hue": 55,
+      "imageUrl": "/assets/rov/alice/10.jpg"
+    },
+    {
+      "id": "alice-skin-11",
+      "heroId": "alice",
+      "gameId": "rov",
+      "name": "Friendship",
+      "tier": "normal",
+      "hue": 78,
+      "imageUrl": "/assets/rov/alice/11.jpg"
+    }
+  ]
+}

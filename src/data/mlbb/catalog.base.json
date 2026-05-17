@@ -1,0 +1,10 @@
+{
+  "heroes": [
+    { "id": "layla", "gameId": "mlbb", "name": "Layla", "skinCount": 6, "wikiTitle": "Layla" },
+    { "id": "miya", "gameId": "mlbb", "name": "Miya", "skinCount": 6, "wikiTitle": "Miya" },
+    { "id": "gusion", "gameId": "mlbb", "name": "Gusion", "skinCount": 6, "wikiTitle": "Gusion" },
+    { "id": "angela", "gameId": "mlbb", "name": "Angela", "skinCount": 6, "wikiTitle": "Angela" },
+    { "id": "lancelot", "gameId": "mlbb", "name": "Lancelot", "skinCount": 6, "wikiTitle": "Lancelot" }
+  ],
+  "skins": []
+}
