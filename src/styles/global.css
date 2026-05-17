@@ -898,6 +898,45 @@ select {
 }
 
 .selected-strip.empty {
+  margin-top: 16px;
+}
+
+.detected-results h4 {
+  margin-bottom: 10px;
+}
+
+.detected-results-list {
+  display: grid;
+  gap: 10px;
+}
+
+.detected-result-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+
+.detected-result-card strong {
+  display: block;
+}
+
+.detected-result-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.detected-result-card .btn-ghost {
+  min-height: 36px;
+}
+
+.selected-strip.empty {
   align-items: center;
   justify-content: center;
   color: var(--muted);

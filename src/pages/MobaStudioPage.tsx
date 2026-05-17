@@ -229,9 +229,13 @@ export function MobaStudioPage() {
                 <Wand2 size={18} />
                 ใช้ AI ช่วยเรียง
               </button>
-              <button type="button" className="btn-secondary" onClick={handleDetectFile.bind(null, undefined)}>
+              <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>
                 <Scan size={18} />
                 ตรวจจับสกินจากรูปด้วย AI
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleImportCandidates} disabled={!candidates.length}>
+                <Check size={18} />
+                นำเข้าเป็นสกินที่เลือก
               </button>
               <button type="button" className="btn-secondary" onClick={handlePreview}>
                 <Eye size={18} />
@@ -299,7 +303,7 @@ export function MobaStudioPage() {
                 <button type="button" className="btn-secondary" onClick={() => setShowDetectModal(false)}>
                   ปิด
                 </button>
-                <button type="button" className="btn-primary" onClick={() => fileRef.current?.click()}>
+                <button type="button" className="btn-primary" onClick={() => fileRef.current?.click()} disabled={detecting}>
                   เริ่มตรวจจับ
                 </button>
               </div>

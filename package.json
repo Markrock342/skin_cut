@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mock-api": "node mock-detect-server.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "fetch:assets": "node scripts/fetch-skin-images.mjs",
     "fetch:assets:rov": "node scripts/fetch-skin-images.mjs --game=rov --limit=10",
     "fetch:assets:mlbb": "node scripts/fetch-skin-images.mjs --game=mlbb --limit=10",
     "build:arena": "node scripts/build-arena-catalog.mjs",
+    "sync:game-logos": "node scripts/sync-sortskin-logos.mjs",
+    "sync:sortskin:rov": "node scripts/sync-sortskin-catalog.mjs --game=rov",
+    "sync:sortskin:rov:json": "node scripts/sync-sortskin-catalog.mjs --game=rov --json-only",
+    "sync:sortskin:mlbb": "node scripts/sync-sortskin-catalog.mjs --game=mlbb",
+    "sync:sortskin:mlbb:json": "node scripts/sync-sortskin-catalog.mjs --game=mlbb --json-only",
     "preview": "vite preview"
   },
   "dependencies": {
