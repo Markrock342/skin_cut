@@ -4,7 +4,7 @@ import { SHOP_BRAND } from '../config/shop-brand';
 import { getHero } from '../data/catalog';
 import { groupSkinsByHero, countUniqueHeroes } from '../lib/poster-groups';
 import { POSTER_TEMPLATE_LABELS } from '../lib/poster-labels';
-import { resolveSkinImageUrl } from '../lib/skin-image-url';
+import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
 
 export type SkinPosterTemplate = 'dark-grid' | 'market-card' | 'clean-showcase' | 'compact-strip';
 
@@ -43,7 +43,7 @@ function SkinPosterCell({
   showRank: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const imageSrc = resolveSkinImageUrl(skin.imageUrl);
+  const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
   const showImage = Boolean(imageSrc) && !imgFailed;
 
   return (

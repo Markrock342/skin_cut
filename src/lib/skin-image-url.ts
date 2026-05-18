@@ -11,7 +11,14 @@ export function isSortskinR2Url(url: string): boolean {
   }
 }
 
-/** แปลง URL R2 → path บน origin เดียวกัน (vite / api proxy) */
+/** แสดงใน <img> — ตรงจาก R2/Cloudflare เร็วกว่า proxy บน Vercel (ไม่ต้องใช้ CORS) */
+export function resolveSkinImageDisplayUrl(url: string | undefined): string {
+  if (!url?.trim()) return '';
+  if (url.startsWith('/') || url.startsWith('data:')) return url;
+  return url;
+}
+
+/** fetch / export — proxy ผ่าน origin เดียวกัน (vite / vercel rewrite) */
 export function resolveSkinImageUrl(url: string | undefined): string {
   if (!url?.trim()) return '';
   if (url.startsWith('/') || url.startsWith('data:')) return url;

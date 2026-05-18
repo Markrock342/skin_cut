@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Skin } from '../data/types';
 import { springSnappy } from '../lib/motion';
-import { resolveSkinImageUrl } from '../lib/skin-image-url';
+import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
 
 interface SkinCardProps {
   skin: Skin;
@@ -12,6 +12,8 @@ interface SkinCardProps {
   selected?: boolean;
   draggable?: boolean;
   isDragging?: boolean;
+  /** กริดหลัก — โหลดรูปก่อน lazy ทั่วไป */
+  imagePriority?: boolean;
   onSelect?: () => void;
   onRemove?: () => void;
   layoutId?: string;
@@ -27,10 +29,17 @@ export function SkinCard({
   onSelect,
   onRemove,
   layoutId,
+  imagePriority = false,
 }: SkinCardProps) {
   const [imgFailed, setImgFailed] = useState(false);
-  const imageSrc = resolveSkinImageUrl(skin.imageUrl);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
   const showImage = imageSrc && !imgFailed;
+
+  useEffect(() => {
+    setImgFailed(false);
+    setImgLoaded(false);
+  }, [imageSrc]);
 
   return (
     <motion.article
@@ -67,11 +76,13 @@ export function SkinCard({
       <motion.div className="skin-card-art" layout="position">
         {showImage ? (
           <img
-            className="skin-card-img"
+            className={`skin-card-img${imgLoaded ? ' is-loaded' : ''}`}
             src={imageSrc}
             alt=""
-            loading="lazy"
+            loading={imagePriority ? 'eager' : 'lazy'}
             decoding="async"
+            fetchPriority={imagePriority ? 'high' : 'auto'}
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgFailed(true)}
           />
         ) : null}

@@ -55,6 +55,7 @@ import {
   StudioAuthRequiredError,
 } from '../lib/studio-api';
 import { compareSkinsByRarity } from '../lib/skin-rarity';
+import { preloadSkinImages } from '../lib/preload-skin-images';
 
 type DetectRowState = 'ready' | 'added' | 'in-list' | 'unmatched';
 
@@ -161,6 +162,10 @@ export function MobaStudioPage() {
   );
   const displaySkins = filterMode === 'tier' ? collectionSkins : skins;
   const tierModeReady = collections.length > 0;
+
+  useEffect(() => {
+    preloadSkinImages(displaySkins.map((s) => s.imageUrl));
+  }, [displaySkins]);
   const minGrid = 72 + viewSize * 14;
   const needsMore = selectedSkins.length < 4;
   const atMaxSelected = selectedSkins.length >= 48;
@@ -513,7 +518,12 @@ export function MobaStudioPage() {
               <AnimatePresence mode="popLayout">
                 {displaySkins.map((skin) => (
                   <motion.div key={skin.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={springSnappy}>
-                    <SkinCard skin={skin} selected={isSelected(skin.id)} onSelect={() => (isSelected(skin.id) ? removeSkin(skin.id) : addSkin(skin))} />
+                    <SkinCard
+                      skin={skin}
+                      imagePriority
+                      selected={isSelected(skin.id)}
+                      onSelect={() => (isSelected(skin.id) ? removeSkin(skin.id) : addSkin(skin))}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>

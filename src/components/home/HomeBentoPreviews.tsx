@@ -7,11 +7,11 @@ import {
   HOME_STUDIO_SHOWCASE,
   type ResolvedShowcaseSkin,
 } from '../../data/home-showcase';
-import { resolveSkinImageUrl } from '../../lib/skin-image-url';
+import { resolveSkinImageDisplayUrl } from '../../lib/skin-image-url';
 
 function MiniSkinArt({ skin, className }: { skin: ResolvedShowcaseSkin; className: string }) {
   const [failed, setFailed] = useState(false);
-  const src = resolveSkinImageUrl(skin.imageUrl);
+  const src = resolveSkinImageDisplayUrl(skin.imageUrl);
 
   return (
     <motion.div
@@ -78,7 +78,7 @@ export function HomeStudioPreview() {
 
 function GridCell({ skin, index }: { skin: ResolvedShowcaseSkin; index: number }) {
   const [failed, setFailed] = useState(false);
-  const src = resolveSkinImageUrl(skin.imageUrl);
+  const src = resolveSkinImageDisplayUrl(skin.imageUrl);
 
   return (
     <motion.div

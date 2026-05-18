@@ -1842,6 +1842,12 @@ select {
   height: 100%;
   object-fit: cover;
   object-position: top center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.skin-card-img.is-loaded {
+  opacity: 1;
 }
 
 .game-card-mode {
