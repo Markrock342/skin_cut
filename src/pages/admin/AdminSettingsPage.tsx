@@ -5,7 +5,7 @@ import { fadeUp } from '../../lib/motion';
 
 export function AdminSettingsPage() {
   const [maintenance, setMaintenance] = useState(false);
-  const [bonusCoins, setBonusCoins] = useState(50);
+  const [bonusCoins, setBonusCoins] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function AdminSettingsPage() {
     try {
       const s = await fetchSiteSettings();
       setMaintenance(Boolean(s.maintenance_mode));
-      setBonusCoins(Number(s.signup_bonus_coins) || 50);
+      setBonusCoins(Number(s.signup_bonus_coins) ?? 0);
       setAnnouncement(String(s.announcement ?? ''));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
@@ -36,7 +36,7 @@ export function AdminSettingsPage() {
         const s = await fetchSiteSettings();
         if (!cancelled) {
           setMaintenance(Boolean(s.maintenance_mode));
-          setBonusCoins(Number(s.signup_bonus_coins) || 50);
+          setBonusCoins(Number(s.signup_bonus_coins) ?? 0);
           setAnnouncement(String(s.announcement ?? ''));
         }
       } catch (e) {
@@ -105,7 +105,7 @@ export function AdminSettingsPage() {
                 value={bonusCoins}
                 onChange={(e) => setBonusCoins(Math.max(0, parseInt(e.target.value, 10) || 0))}
               />
-              <span className="admin-hint">ค่าเริ่มต้นใน trigger ยังเป็น 50 — ใช้ค่านี้เมื่อเชื่อมอ่านจาก site_settings</span>
+              <span className="admin-hint">สมาชิกใหม่ได้คอยน์ตามค่านี้ (0 = ไม่มีโบนัสฟรี)</span>
             </label>
           </div>
 

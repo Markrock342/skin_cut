@@ -64,7 +64,7 @@ export function RegisterPage() {
             <UserPlus size={22} />
           </span>
           <h1>สมัครสมาชิก</h1>
-          <p>สร้างบัญชีใหม่ รับโบนัส 50 คอยน์ทันที</p>
+          <p>สร้างบัญชีเพื่อสร้างโปสเตอร์และเติมคอยน์เมื่อต้องการใช้งาน</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit}>

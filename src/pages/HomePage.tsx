@@ -76,11 +76,7 @@ export function HomePage() {
           >
             <Link to="/games" className="btn-primary">
               เปิดสตูดิโอ
-              <ArrowRight size={18} />
-            </Link>
-            <Link to="/games" className="btn-secondary-outline">
-              <Scissors size={18} aria-hidden />
-              เลือกเกม
+              <ArrowRight size={18} aria-hidden />
             </Link>
           </motion.div>
         </div>

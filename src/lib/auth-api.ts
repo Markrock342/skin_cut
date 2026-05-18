@@ -1,4 +1,5 @@
 import type { PostgrestSingleResponse, User } from '@supabase/supabase-js';
+import { SIGNUP_BONUS_COINS } from '../config/signup';
 import { TERMS_VERSION } from '../content/legal';
 import type { RegisterOutcome } from './auth-types';
 import type { AuthUser } from '../types/auth';
@@ -80,7 +81,7 @@ function profileFromAuthUser(authUser: User, email: string): AuthUser {
     id: authUser.id,
     email: authUser.email ?? email,
     displayName: String(meta.display_name ?? email.split('@')[0]),
-    coins: Number(meta.coins ?? 50),
+    coins: Number(meta.coins ?? SIGNUP_BONUS_COINS),
     createdAt: authUser.created_at ?? new Date().toISOString(),
     isAdmin: Boolean(meta.is_admin),
   };
@@ -213,7 +214,7 @@ export async function register(input: {
     options: {
       data: {
         display_name: displayName,
-        coins: 50,
+        coins: SIGNUP_BONUS_COINS,
         terms_version: termsVersion,
       },
     },

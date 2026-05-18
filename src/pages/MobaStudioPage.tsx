@@ -53,9 +53,11 @@ import {
 import { exportNodeToPng } from '../lib/export-image';
 import {
   chargeStudioPoster,
+  formatStudioChargeError,
   InsufficientCoinsError,
   StudioAuthRequiredError,
 } from '../lib/studio-api';
+import { SUPABASE_SETUP_MESSAGE } from '../lib/supabase';
 import { compareSkinsByRarity } from '../lib/skin-rarity';
 import { preloadSkinImages } from '../lib/preload-skin-images';
 
@@ -92,7 +94,7 @@ const MOBA_GAMES = GAMES.filter((g) => g.id === 'rov' || g.id === 'mlbb');
 
 export function MobaStudioPage() {
   const navigate = useNavigate();
-  const { user, refresh } = useAuth();
+  const { user, refresh, patchCoins, authConfigured } = useAuth();
   const { gameId } = useParams<{ gameId: string }>();
   const gid = gameId === 'mlbb' ? 'mlbb' : 'rov';
   const game = getGame(gid);
@@ -105,6 +107,7 @@ export function MobaStudioPage() {
   const [statusText, setStatusText] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [exportingPoster, setExportingPoster] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [showDetectModal, setShowDetectModal] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [detectProgress, setDetectProgress] = useState<number | null>(null);
@@ -280,11 +283,16 @@ export function MobaStudioPage() {
     if (!isGridFormatValidForCount(selectedSkins.length, gridFormat)) {
       setGridFormat(suggestGridFormat(selectedSkins.length));
     }
+    setCreateError(null);
     setShowPreviewModal(true);
     return true;
   };
 
   const handleCreateFromModal = async (posterEl: HTMLDivElement) => {
+    if (!authConfigured) {
+      setStatusText(SUPABASE_SETUP_MESSAGE);
+      return;
+    }
     if (!user) {
       navigate('/login', { state: { from: `/studio/${gid}` } });
       return;
@@ -296,14 +304,19 @@ export function MobaStudioPage() {
     }
 
     setExportingPoster(true);
+    setCreateError(null);
     setStatusText('กำลังสร้าง PNG...');
     try {
-      const title = `โปสเตอร์ ${game.shortName} · ${selectedSkins.length} สกิน · ${gridFormat.replace('x', '×')}`;
-      await chargeStudioPoster(title, selectedSkins.length);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       await exportNodeToPng(posterEl, `${gid}-skin-poster-${Date.now()}.png`);
+
+      setStatusText('กำลังหักคอยน์...');
+      const title = `โปสเตอร์ ${game.shortName} · ${selectedSkins.length} สกิน · ${gridFormat.replace('x', '×')}`;
+      const { coins, charged } = await chargeStudioPoster(title, selectedSkins.length);
+      patchCoins(coins);
       await refresh();
-      setStatusText(`สร้างและดาวน์โหลดแล้ว (−${studioCostLabel} คอยน์)`);
+      const chargedLabel = charged.toFixed(2);
+      setStatusText(`สร้างและดาวน์โหลดแล้ว (−${chargedLabel} คอยน์)`);
       setShowPreviewModal(false);
     } catch (err) {
       if (err instanceof StudioAuthRequiredError) {
@@ -315,7 +328,16 @@ export function MobaStudioPage() {
         navigate('/topup');
         return;
       }
-      setStatusText('สร้าง PNG ไม่สำเร็จ — ลองอีกครั้ง');
+      const detail = formatStudioChargeError(err);
+      const message =
+        detail.includes('PNG') || detail.includes('canvas') || detail.includes('ภาพ')
+          ? `สร้าง PNG ไม่สำเร็จ — ${detail}`
+          : detail.includes('คอยน์') || detail.includes('migration')
+            ? detail
+            : `สร้างไม่สำเร็จ — ${detail}`;
+      setCreateError(message);
+      setStatusText(message);
+      console.error('studio create failed', err);
     } finally {
       setExportingPoster(false);
     }
@@ -771,7 +793,11 @@ export function MobaStudioPage() {
         needsMore={needsMore || gridFormatInvalid}
         userCoins={user?.coins ?? null}
         exporting={exportingPoster}
-        onClose={() => setShowPreviewModal(false)}
+        createError={createError}
+        onClose={() => {
+          setShowPreviewModal(false);
+          setCreateError(null);
+        }}
         onCreate={handleCreateFromModal}
       />
 

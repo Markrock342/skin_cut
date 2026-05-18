@@ -5,6 +5,7 @@ import { getHero } from '../data/catalog';
 import { groupSkinsByHero, countUniqueHeroes } from '../lib/poster-groups';
 import { BrandLogo } from './BrandLogo';
 import { POSTER_TEMPLATE_LABELS } from '../lib/poster-labels';
+import { posterSkinObjectPosition } from '../lib/poster-game-style';
 import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
 import { ROV_PROFILE_FRAMES_ENABLED } from '../config/features';
 import { SkinPosterFrameOverlay } from './SkinPosterFrameOverlay';
@@ -28,6 +29,8 @@ interface SkinPosterPreviewProps {
   showRank?: boolean;
   /** RoV เท่านั้น — กรอบโปรไฟล์ทับทุกช่องสกิน */
   rovProfileFrameId?: string | null;
+  /** PNG export — พื้นหลัง + ชื่อสกินใต้การ์ด */
+  stripExportCanvas?: boolean;
 }
 
 function gridColumns(gridFormat: string, template: SkinPosterTemplate, variant: 'full' | 'strip') {
@@ -47,6 +50,7 @@ function SkinPosterCell({
   showRank,
   rovProfileFrameId,
   gameId,
+  stripExportCanvas,
 }: {
   skin: Skin;
   index: number;
@@ -55,6 +59,7 @@ function SkinPosterCell({
   showRank: boolean;
   rovProfileFrameId?: string | null;
   gameId: string;
+  stripExportCanvas: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
@@ -72,6 +77,7 @@ function SkinPosterCell({
             alt={skin.name}
             loading="eager"
             decoding="async"
+            style={{ objectPosition: posterSkinObjectPosition(gameId) }}
             onError={() => setImgFailed(true)}
           />
         ) : null}
@@ -80,7 +86,11 @@ function SkinPosterCell({
         ) : null}
         {showRank ? <span className="skin-poster__rank">{index + 1}</span> : null}
       </div>
-      {!strip ? (
+      {strip && stripExportCanvas ? (
+        <figcaption className="skin-poster__strip-caption">
+          <strong>{skin.name}</strong>
+        </figcaption>
+      ) : !strip ? (
         <figcaption>
           {heroName ? <em>{heroName}</em> : null}
           <strong>{skin.name}</strong>
@@ -103,6 +113,7 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
       variant = 'full',
       showRank = true,
       rovProfileFrameId = null,
+      stripExportCanvas = false,
     },
     ref,
   ) => {
@@ -127,6 +138,7 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
       showRank: strip ? false : showRank,
       rovProfileFrameId,
       gameId: game.id,
+      stripExportCanvas: strip && stripExportCanvas,
     };
 
     let runningIndex = 0;
@@ -134,7 +146,7 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
     return (
       <div
         ref={ref}
-        className={`skin-poster skin-poster--${template}${strip ? ' skin-poster--strip' : ''}`}
+        className={`skin-poster skin-poster--${template}${strip ? ' skin-poster--strip' : ''}${strip && stripExportCanvas ? ' skin-poster--strip-export' : ''}`}
         data-game={game.id}
       >
         {!strip ? (

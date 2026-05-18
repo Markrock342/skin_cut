@@ -57,13 +57,26 @@ async function inlineProxiedImages(node: HTMLElement) {
 export async function renderNodeToCanvas(node: HTMLElement) {
   await inlineProxiedImages(node);
   const html2canvas = await getHtml2Canvas();
-  return html2canvas(node, {
+  const base = {
     scale: 2,
-    useCORS: false,
-    allowTaint: false,
     backgroundColor: null,
     logging: false,
-  });
+  } as const;
+
+  try {
+    return await html2canvas(node, {
+      ...base,
+      useCORS: false,
+      allowTaint: false,
+    });
+  } catch (first) {
+    console.warn('html2canvas strict mode failed, retrying with allowTaint', first);
+    return html2canvas(node, {
+      ...base,
+      useCORS: true,
+      allowTaint: true,
+    });
+  }
 }
 
 export async function exportNodeToPng(node: HTMLElement, filename: string) {

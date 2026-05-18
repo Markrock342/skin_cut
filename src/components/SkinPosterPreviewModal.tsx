@@ -31,6 +31,8 @@ interface SkinPosterPreviewModalProps {
   onClose: () => void;
   onCreate: (posterEl: HTMLDivElement) => void | Promise<void>;
   exporting?: boolean;
+  /** ข้อความ error จากการสร้าง (แสดงใน modal) */
+  createError?: string | null;
 }
 
 export function SkinPosterPreviewModal({
@@ -48,6 +50,7 @@ export function SkinPosterPreviewModal({
   onClose,
   onCreate,
   exporting = false,
+  createError = null,
 }: SkinPosterPreviewModalProps) {
   const posterRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -60,7 +63,11 @@ export function SkinPosterPreviewModal({
   const canAfford = isLoggedIn && userCoins >= cost;
 
   const handleCreate = () => {
-    if (!posterRef.current || needsMore) return;
+    if (needsMore || exporting) return;
+    if (!posterRef.current) {
+      console.error('SkinPosterPreviewModal: export ref missing');
+      return;
+    }
     void onCreate(posterRef.current);
   };
 
@@ -146,13 +153,20 @@ export function SkinPosterPreviewModal({
                   showWatermark={showWatermark}
                   shopName={shopName.trim() || loadShopName()}
                   variant="strip"
+                  stripExportCanvas
                   rovProfileFrameId={rovProfileFrameId}
                 />
               </div>
 
               <p className="preview-modal-pricing-hint">{STUDIO_PRICING_HINT}</p>
 
-              <div className="preview-modal-actions">
+              {createError ? (
+                <p className="preview-modal-error" role="alert">
+                  {createError}
+                </p>
+              ) : null}
+
+              <motion.div className="preview-modal-actions">
                 <button type="button" className="btn-secondary" onClick={onClose}>
                   ปิด
                 </button>
@@ -165,7 +179,7 @@ export function SkinPosterPreviewModal({
                   <Sparkles size={18} />
                   {createLabel}
                 </button>
-              </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         </ModalPortal>

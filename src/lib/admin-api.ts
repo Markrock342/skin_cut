@@ -153,7 +153,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
 
   const out: SiteSettings = {
     maintenance_mode: false,
-    signup_bonus_coins: 50,
+    signup_bonus_coins: 0,
     announcement: '',
   };
 

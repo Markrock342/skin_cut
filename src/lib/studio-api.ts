@@ -1,4 +1,4 @@
-import { calcStudioCost, STUDIO_MIN_SKINS } from '../config/studio-pricing';
+import { calcStudioCost, formatStudioCost, STUDIO_MIN_SKINS } from '../config/studio-pricing';
 import { requireSupabase } from './supabase';
 
 export class InsufficientCoinsError extends Error {
@@ -30,6 +30,37 @@ export interface ChargeStudioPosterResult {
   charged: number;
 }
 
+export function formatStudioChargeError(error: unknown): string {
+  if (error instanceof StudioAuthRequiredError) {
+    return 'กรุณาเข้าสู่ระบบก่อนสร้างภาพ';
+  }
+  if (error instanceof InsufficientCoinsError) {
+    return `คอยน์ไม่พอ — ต้องการ ${formatStudioCost(error.required)} คอยน์`;
+  }
+  if (error instanceof StudioMinSkinsError) {
+    return error.message;
+  }
+
+  const msg =
+    error && typeof error === 'object' && 'message' in error
+      ? String((error as { message: unknown }).message)
+      : String(error);
+
+  if (msg.includes('not_authenticated')) return 'กรุณาเข้าสู่ระบบก่อนสร้างภาพ';
+  if (msg.includes('insufficient_coins')) return 'คอยน์ไม่พอ';
+  if (msg.includes('min_skins_required')) return `เลือกอย่างน้อย ${STUDIO_MIN_SKINS} สกิน`;
+
+  if (
+    msg.includes('charge_studio_poster') ||
+    msg.includes('PGRST202') ||
+    msg.includes('Could not find the function')
+  ) {
+    return 'ระบบหักคอยน์ยังไม่พร้อม — รัน migration 007 บน Supabase (npm run db:migrate)';
+  }
+
+  return msg || 'หักคอยน์ไม่สำเร็จ';
+}
+
 export async function chargeStudioPoster(
   title: string,
   skinCount: number,
@@ -39,8 +70,15 @@ export async function chargeStudioPoster(
   }
 
   const expectedCost = calcStudioCost(skinCount);
+  const supabase = requireSupabase();
 
-  const { data, error } = await requireSupabase().rpc('charge_studio_poster', {
+  await supabase.rpc('ensure_my_profile').then(({ error }) => {
+    if (error && !error.message.includes('Could not find the function')) {
+      console.warn('ensure_my_profile:', error.message);
+    }
+  });
+
+  const { data, error } = await supabase.rpc('charge_studio_poster', {
     p_title: title,
     p_skin_count: skinCount,
   });
@@ -56,7 +94,7 @@ export async function chargeStudioPoster(
     if (msg.includes('insufficient_coins')) {
       throw new InsufficientCoinsError(expectedCost);
     }
-    throw new Error(error.message);
+    throw new Error(msg);
   }
 
   const row = data as { coins?: number; charged?: number } | null;

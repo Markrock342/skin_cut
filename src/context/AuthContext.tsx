@@ -26,6 +26,8 @@ type AuthContextValue = {
   ) => Promise<RegisterOutcome>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** อัปเดตยอดคอยน์ใน UI ทันทีหลังหัก/เติม */
+  patchCoins: (coins: number) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -127,6 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const patchCoins = useCallback((coins: number) => {
+    setUser((prev) => (prev ? { ...prev, coins: Number(coins) } : null));
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -136,8 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       refresh,
+      patchCoins,
     }),
-    [user, loading, login, register, logout, refresh],
+    [user, loading, login, register, logout, refresh, patchCoins],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
