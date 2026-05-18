@@ -26,6 +26,8 @@ interface SkinPosterPreviewModalProps {
   shopName: string;
   needsMore: boolean;
   userCoins?: number | null;
+  /** RoV — กรอบโปรไฟล์ (null = ไม่ใช้) */
+  rovProfileFrameId?: string | null;
   onClose: () => void;
   onCreate: (posterEl: HTMLDivElement) => void | Promise<void>;
   exporting?: boolean;
@@ -42,6 +44,7 @@ export function SkinPosterPreviewModal({
   shopName,
   needsMore,
   userCoins = null,
+  rovProfileFrameId = null,
   onClose,
   onCreate,
   exporting = false,
@@ -118,6 +121,7 @@ export function SkinPosterPreviewModal({
                     showWatermark={false}
                     shopName={shopName.trim() || loadShopName()}
                     variant="strip"
+                    rovProfileFrameId={rovProfileFrameId}
                   />
                 </div>
 
@@ -142,6 +146,7 @@ export function SkinPosterPreviewModal({
                   showWatermark={showWatermark}
                   shopName={shopName.trim() || loadShopName()}
                   variant="strip"
+                  rovProfileFrameId={rovProfileFrameId}
                 />
               </div>
 

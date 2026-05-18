@@ -45,6 +45,33 @@ const skinById = new Map<string, Skin>();
 const collectionsByGame = new Map<MobaGameId, SkinCollection[]>();
 const loadPromises = new Map<MobaGameId, Promise<void>>();
 
+/** SortSkin อาจส่งชั้นสกินซ้ำ id — รวม skinIds แถวเดียว ไม่ให้ React key ชน */
+function mergeCollectionsById(collections: SkinCollection[]): SkinCollection[] {
+  const byId = new Map<string, SkinCollection>();
+  for (const c of collections) {
+    const cur = byId.get(c.id);
+    if (!cur) {
+      byId.set(c.id, {
+        ...c,
+        skinIds: [...c.skinIds],
+        skinCount: c.skinIds.length,
+      });
+      continue;
+    }
+    const seen = new Set(cur.skinIds);
+    for (const sid of c.skinIds) {
+      if (!seen.has(sid)) {
+        seen.add(sid);
+        cur.skinIds.push(sid);
+      }
+    }
+    cur.skinCount = cur.skinIds.length;
+    cur.order = Math.min(cur.order, c.order);
+    if (!cur.name?.trim() && c.name?.trim()) cur.name = c.name;
+  }
+  return [...byId.values()].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
 function indexMobaCatalog(gameId: MobaGameId, catalog: CatalogBundle) {
   if (indexedGames.has(gameId)) return;
 
@@ -54,7 +81,8 @@ function indexMobaCatalog(gameId: MobaGameId, catalog: CatalogBundle) {
     skinMap.set(hero.id, fromJson.length ? fromJson : buildFallbackSkins(hero));
   });
   catalog.skins.forEach((skin) => skinById.set(skin.id, skin));
-  collectionsByGame.set(gameId, catalog.collections ?? []);
+  const raw = catalog.collections ?? [];
+  collectionsByGame.set(gameId, raw.length ? mergeCollectionsById(raw) : []);
   indexedGames.add(gameId);
 }
 

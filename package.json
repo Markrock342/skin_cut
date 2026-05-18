@@ -24,7 +24,14 @@
     "sync:sortskin:rov:json": "node scripts/sync-sortskin-catalog.mjs --game=rov --json-only",
     "sync:sortskin:mlbb": "node scripts/sync-sortskin-catalog.mjs --game=mlbb",
     "sync:sortskin:mlbb:json": "node scripts/sync-sortskin-catalog.mjs --game=mlbb --json-only",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract:apk": "node scripts/extract-apk.mjs",
+    "extract:rov:from-phone": "node scripts/pull-rov-apk-and-extract.mjs",
+    "extract:rov:textures": "python3 scripts/extract-rov-textures.py",
+    "extract:rov:cache": "node scripts/pull-rov-cache-from-phone.mjs",
+    "extract:rov:textures:cache": "python3 scripts/extract-rov-textures.py --src=scratch/rov-phone-cache",
+    "export:rov:frames": "bash scripts/export-rov-assetstudio.sh",
+    "export:rov:frames:all": "EXPORT_ALL=1 bash scripts/export-rov-assetstudio.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

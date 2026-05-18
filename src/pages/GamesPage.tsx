@@ -12,6 +12,7 @@ export function GamesPage() {
 
   return (
     <motion.div
+      className="games-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={springSnappy}

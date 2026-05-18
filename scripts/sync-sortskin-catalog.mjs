@@ -130,6 +130,29 @@ function parseCollections(html) {
   return collections;
 }
 
+/** ชื่อชั้นสกินซ้ำจาก SortSkin → slug id ซ้ำ — รวม skinIds */
+function mergeCollectionsById(collections) {
+  const byId = new Map();
+  for (const c of collections) {
+    const cur = byId.get(c.id);
+    if (!cur) {
+      byId.set(c.id, { ...c, skinIds: [...c.skinIds] });
+      continue;
+    }
+    const seen = new Set(cur.skinIds);
+    for (const sid of c.skinIds) {
+      if (!seen.has(sid)) {
+        seen.add(sid);
+        cur.skinIds.push(sid);
+      }
+    }
+    cur.skinCount = cur.skinIds.length;
+    cur.order = Math.min(cur.order, c.order);
+    if (!String(cur.name || '').trim() && String(c.name || '').trim()) cur.name = c.name;
+  }
+  return [...byId.values()].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+}
+
 async function fetchPage(url) {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'SkinCut-Sync/1.0 (SortSkin catalog sync)' },
@@ -265,6 +288,8 @@ export async function syncCatalog(game, options = {}) {
       skinIds,
     });
   }
+
+  catalog.collections = mergeCollectionsById(catalog.collections);
 
   const outJson = path.join(ROOT, 'src', 'data', game, 'catalog.fetched.json');
   const prev = await readPreviousCatalog(outJson);

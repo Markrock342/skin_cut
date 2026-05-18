@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ใบเสนอราคา — บริการ SkinCut Managed Service</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Sarabun", "Thonburi", "Tahoma", sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 8px;
+      line-height: 1.25;
+    }
+
+    h1 {
+      font-size: 20pt;
+      color: #0f172a;
+    }
+
+    h2 {
+      font-size: 13pt;
+      color: #0f766e;
+      margin-top: 22px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #99f6e4;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      color: #134e4a;
+      margin-top: 14px;
+    }
+
+    p {
+      margin: 0 0 8px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 3px solid #0f766e;
+    }
+
+    .brand {
+      flex: 1;
+    }
+
+    .brand .tagline {
+      color: #64748b;
+      font-size: 10pt;
+      margin-top: 4px;
+    }
+
+    .meta {
+      min-width: 220px;
+      font-size: 10pt;
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .meta p {
+      margin-bottom: 4px;
+    }
+
+    .meta strong {
+      display: inline-block;
+      min-width: 88px;
+      color: #0f766e;
+    }
+
+    .intro {
+      background: #f8fafc;
+      border-left: 4px solid #0f766e;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .games {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 4px;
+    }
+
+    .chip {
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+      color: #155e75;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 9.5pt;
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 10pt;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #f0fdfa;
+      color: #134e4a;
+      font-weight: 700;
+    }
+
+    .price {
+      font-weight: 700;
+      color: #0f766e;
+      white-space: nowrap;
+    }
+
+    .package {
+      page-break-inside: avoid;
+      margin-bottom: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .package-head {
+      background: #0f766e;
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .package-head.recommended {
+      background: #115e59;
+    }
+
+    .package-head h3 {
+      color: #fff;
+      margin: 0;
+      font-size: 12pt;
+    }
+
+    .badge {
+      background: #fef08a;
+      color: #713f12;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .package-body {
+      padding: 12px 14px 14px;
+    }
+
+    ul {
+      margin: 6px 0 10px 18px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .compare th:first-child,
+    .compare td:first-child {
+      width: 28%;
+    }
+
+    .compare .yes {
+      color: #0f766e;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .compare .no {
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    .highlight-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 10px;
+    }
+
+    .highlight-box strong {
+      color: #92400e;
+    }
+
+    .terms-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .note {
+      font-size: 9.5pt;
+      color: #64748b;
+    }
+
+    .footer {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid #cbd5e1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .sign-box {
+      margin-top: 28px;
+    }
+
+    .sign-line {
+      border-bottom: 1px solid #334155;
+      height: 28px;
+      margin-bottom: 6px;
+    }
+
+    .checkbox-row {
+      margin: 8px 0;
+      font-size: 11pt;
+    }
+
+    .checkbox {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid #334155;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @media print {
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <h1>ใบเสนอราคา</h1>
+      <p><strong>บริการ SkinCut — Managed Service</strong></p>
+      <p class="tagline">ระบบสร้างโปสเตอร์สกิน / โปรโมทบัญชีเกม — ใช้งานได้ทันที ไม่โอน source code</p>
+    </div>
+    <div class="meta">
+      <p><strong>เลขที่</strong> SC-2026-001</p>
+      <p><strong>วันที่</strong> 18 พฤษภาคม 2026</p>
+      <p><strong>อายุใบเสนอ</strong> 30 วัน</p>
+      <p><strong>ผู้เสนอราคา</strong> [ชื่อคุณ / ชื่อทีม]</p>
+      <p><strong>ผู้รับบริการ</strong> [ชื่อร้าน / บริษัทลูกค้า]</p>
+    </div>
+  </div>
+
+  <div class="intro">
+    <p>
+      ขอเสนอบริการ <strong>SkinCut</strong> ในรูปแบบ Managed Service โดยผู้ให้บริการดูแลระบบ hosting อัปเดต และแก้ไข bug
+      ลูกค้าใช้งานผ่านเว็บของตัวเอง <strong>source code และระบบหลักยังเป็นทรัพย์สินของผู้ให้บริการ</strong>
+    </p>
+    <div class="games">
+      <span class="chip">ROV</span>
+      <span class="chip">MLBB</span>
+      <span class="chip">Arena Breakout</span>
+      <span class="chip">ระบบสมาชิก + คอยน์</span>
+      <span class="chip">Admin Panel</span>
+    </div>
+  </div>
+
+  <h2>1. แพ็กเกจและราคา</h2>
+  <p class="note">ราคาเปิดงานแรกสำหรับลูกค้ารายแรก — ล็อกราคา 12 เดือนแรก</p>
+
+  <div class="package">
+    <div class="package-head">
+      <h3>แพ็ก A — Starter</h3>
+      <span>เหมาะกับร้านที่อยากลองใช้ งบไม่สูง</span>
+    </div>
+    <div class="package-body">
+      <table>
+        <tr><th>รายการ</th><th>รายละเอียด</th></tr>
+        <tr><td>โดเมน</td><td>subdomain เช่น [ชื่อร้าน].skincut.app</td></tr>
+        <tr><td>เกม</td><td>ROV + MLBB</td></tr>
+        <tr><td>แบรนด์</td><td>ใส่โลโก้ + ชื่อร้าน</td></tr>
+        <tr><td>Admin</td><td>ใช้งานได้</td></tr>
+        <tr><td>Support</td><td>Line / อีเมล — ตอบภายใน 2–3 วันทำการ</td></tr>
+      </table>
+      <table>
+        <tr><th>ค่าใช้จ่าย</th><th>ราคา</th></tr>
+        <tr><td>ค่าติดตั้งครั้งแรก (Setup)</td><td class="price">฿15,000</td></tr>
+        <tr><td>ค่าบริการรายเดือน</td><td class="price">฿3,500 / เดือน</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="package">
+    <div class="package-head recommended">
+      <h3>แพ็ก B — Pro</h3>
+      <span class="badge">แนะนำ</span>
+    </div>
+    <div class="package-body">
+      <p>เหมาะกับร้านไอดีที่อยากใช้จริงจัง มีโดเมนตัวเอง</p>
+      <table>
+        <tr><th>รายการ</th><th>รายละเอียด</th></tr>
+        <tr><td>โดเมน</td><td>โดเมนของลูกค้า เช่น studio.[ชื่อร้าน].com</td></tr>
+        <tr><td>เกม</td><td>ครบ 3 เกม (ROV + MLBB + Arena Breakout)</td></tr>
+        <tr><td>แบรนด์</td><td>โลโก้ + สี + ชื่อร้าน</td></tr>
+        <tr><td>Admin</td><td>ใช้งานได้เต็มรูปแบบ</td></tr>
+        <tr><td>Support</td><td>ตอบภายใน 1–2 วันทำการ</td></tr>
+        <tr><td>แบ่งรายได้</td><td>10% จากยอดเติมคอยน์ของลูกค้าปลายทาง</td></tr>
+      </table>
+      <table>
+        <tr><th>ค่าใช้จ่าย</th><th>ราคา</th></tr>
+        <tr><td>ค่าติดตั้งครั้งแรก (Setup)</td><td class="price">฿25,000</td></tr>
+        <tr><td>ค่าบริการรายเดือน</td><td class="price">฿6,500 / เดือน</td></tr>
+        <tr><td>แบ่งรายได้จากเติมคอยน์</td><td class="price">10% ของยอดเติมจริง</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="package">
+    <div class="package-head">
+      <h3>แพ็ก C — Partner</h3>
+      <span>ร้านใหญ่ / ต้องการ customization มากขึ้น</span>
+    </div>
+    <div class="package-body">
+      <table>
+        <tr><th>รายการ</th><th>รายละเอียด</th></tr>
+        <tr><td>ทุกอย่างใน Pro</td><td>✓ รวมครบ</td></tr>
+        <tr><td>Support</td><td>ตอบภายใน 24 ชม. (วันทำการ)</td></tr>
+        <tr><td>ปรับ UI เล็กน้อย</td><td>1 รอบ (สี, ข้อความ, ปุ่ม)</td></tr>
+        <tr><td>แบ่งรายได้</td><td>8% จากยอดเติมคอยน์</td></tr>
+      </table>
+      <table>
+        <tr><th>ค่าใช้จ่าย</th><th>ราคา</th></tr>
+        <tr><td>ค่าติดตั้งครั้งแรก (Setup)</td><td class="price">฿40,000</td></tr>
+        <tr><td>ค่าบริการรายเดือน</td><td class="price">฿10,000 / เดือน</td></tr>
+        <tr><td>แบ่งรายได้จากเติมคอยน์</td><td class="price">8% ของยอดเติมจริง</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>2. เปรียบเทียบแพ็ก</h2>
+  <table class="compare">
+    <tr>
+      <th>รายการ</th>
+      <th>Starter</th>
+      <th>Pro</th>
+      <th>Partner</th>
+    </tr>
+    <tr><td>Setup</td><td class="price">฿15,000</td><td class="price">฿25,000</td><td class="price">฿40,000</td></tr>
+    <tr><td>รายเดือน</td><td class="price">฿3,500</td><td class="price">฿6,500</td><td class="price">฿10,000</td></tr>
+    <tr><td>แบ่งรายได้</td><td class="no">—</td><td class="yes">10%</td><td class="yes">8%</td></tr>
+    <tr><td>โดเมนตัวเอง</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+    <tr><td>ครบ 3 เกม</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+  </table>
+
+  <h2>3. สิ่งที่รวม / ไม่รวม</h2>
+  <div class="terms-grid">
+    <div>
+      <h3>รวมในทุกแพ็ก</h3>
+      <ul>
+        <li>Hosting เว็บ + ฐานข้อมูล</li>
+        <li>อัปเดต catalog สกิน</li>
+        <li>แก้ bug ระบบหลัก</li>
+        <li>SSL / HTTPS</li>
+        <li>สำรองข้อมูล user และประวัติ</li>
+      </ul>
+    </div>
+    <div>
+      <h3>ไม่รวม (คิดเพิ่ม)</h3>
+      <ul>
+        <li>ต่อ PromptPay / TrueMoney / Stripe — ฿15,000–30,000</li>
+        <li>ฟีเจอร์ใหม่ / UI ใหม่ — ฿1,200/ชม.</li>
+        <li>เกมใหม่นอก 3 เกม — ตาม scope</li>
+        <li>ค่าโดเมน — ลูกค้าจ่ายตรงหรือคืนใบเสร็จ</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>4. เงื่อนไขการชำระเงิน</h2>
+  <table>
+    <tr><th>รายการ</th><th>เงื่อนไข</th></tr>
+    <tr><td>Setup fee</td><td>ชำระ 50% เมื่อ confirm + 50% เมื่อ launch</td></tr>
+    <tr><td>ค่ารายเดือน</td><td>ชำระต้นเดือนล่วงหน้า</td></tr>
+    <tr><td>สัญญาขั้นต่ำ</td><td>12 เดือน (ล็อกราคาเปิดงานแรก)</td></tr>
+    <tr><td>แบ่งรายได้</td><td>สรุปทุกสิ้นเดือน — ชำระภายในวันที่ 7 ของเดือนถัดไป</td></tr>
+  </table>
+
+  <h2>5. สิทธิ์และ Timeline</h2>
+  <ul>
+    <li><strong>Source code</strong> เป็นทรัพย์สินของผู้ให้บริการ — ไม่มีการโอน source code</li>
+    <li><strong>แบรนด์ โดเมน และข้อมูลลูกค้า</strong> เป็นของลูกค้า</li>
+    <li>เมื่อสิ้นสุดสัญญา — ขอ export ข้อมูล user ได้</li>
+    <li><strong>Timeline:</strong> confirm + มัดจำ → ตั้งค่า 5–10 วัน → launch รวมประมาณ 7–14 วันทำการ</li>
+  </ul>
+
+  <div class="highlight-box">
+    <p><strong>🎁 ข้อเสนอพิเศษ — ลูกค้ารายแรก</strong></p>
+    <ul>
+      <li>ลด Setup <strong>฿3,000</strong> จากแพ็กที่เลือก</li>
+      <li>ฟรีตั้งค่าแบรนด์ (โลโก้ + สี) 1 รอบ</li>
+      <li>ล็อกราคารายเดือน 12 เดือน</li>
+    </ul>
+    <p><strong>ตัวอย่าง:</strong> แพ็ก Pro → Setup <strong>฿22,000</strong> + รายเดือน <strong>฿6,500</strong></p>
+  </div>
+
+  <h2>6. การ Confirm</h2>
+  <div class="checkbox-row"><span class="checkbox"></span> แพ็ก A — Starter</div>
+  <div class="checkbox-row"><span class="checkbox"></span> แพ็ก B — Pro</div>
+  <div class="checkbox-row"><span class="checkbox"></span> แพ็ก C — Partner</div>
+
+  <table>
+    <tr><th>ชื่อผู้ติดต่อ</th><td>&nbsp;</td></tr>
+    <tr><th>เบอร์ / Line</th><td>&nbsp;</td></tr>
+    <tr><th>อีเมล</th><td>&nbsp;</td></tr>
+    <tr><th>โดเมนที่ต้องการ</th><td>&nbsp;</td></tr>
+  </table>
+
+  <div class="footer">
+    <div>
+      <p><strong>ผู้เสนอราคา</strong></p>
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <p>[ชื่อคุณ]</p>
+        <p class="note">[เบอร์ / Line / อีเมล]</p>
+      </div>
+    </div>
+    <div>
+      <p><strong>ผู้รับบริการ (ลงนามยืนยัน)</strong></p>
+      <div class="sign-box">
+        <div class="sign-line"></div>
+        <p>[ชื่อลูกค้า]</p>
+        <p class="note">วันที่ ___________________</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

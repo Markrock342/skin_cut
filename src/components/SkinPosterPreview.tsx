@@ -6,6 +6,8 @@ import { groupSkinsByHero, countUniqueHeroes } from '../lib/poster-groups';
 import { BrandLogo } from './BrandLogo';
 import { POSTER_TEMPLATE_LABELS } from '../lib/poster-labels';
 import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
+import { ROV_PROFILE_FRAMES_ENABLED } from '../config/features';
+import { SkinPosterFrameOverlay } from './SkinPosterFrameOverlay';
 
 export type SkinPosterTemplate =
   | 'skincut-studio'
@@ -24,6 +26,8 @@ interface SkinPosterPreviewProps {
   shopName?: string;
   variant?: 'full' | 'strip';
   showRank?: boolean;
+  /** RoV เท่านั้น — กรอบโปรไฟล์ทับทุกช่องสกิน */
+  rovProfileFrameId?: string | null;
 }
 
 function gridColumns(gridFormat: string, template: SkinPosterTemplate, variant: 'full' | 'strip') {
@@ -41,12 +45,16 @@ function SkinPosterCell({
   heroName,
   strip,
   showRank,
+  rovProfileFrameId,
+  gameId,
 }: {
   skin: Skin;
   index: number;
   heroName: string;
   strip: boolean;
   showRank: boolean;
+  rovProfileFrameId?: string | null;
+  gameId: string;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
@@ -66,6 +74,9 @@ function SkinPosterCell({
             decoding="async"
             onError={() => setImgFailed(true)}
           />
+        ) : null}
+        {ROV_PROFILE_FRAMES_ENABLED && rovProfileFrameId && gameId === 'rov' ? (
+          <SkinPosterFrameOverlay frameId={rovProfileFrameId} strip={strip} />
         ) : null}
         {showRank ? <span className="skin-poster__rank">{index + 1}</span> : null}
       </div>
@@ -91,6 +102,7 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
       shopName = SHOP_BRAND.name,
       variant = 'full',
       showRank = true,
+      rovProfileFrameId = null,
     },
     ref,
   ) => {
@@ -110,7 +122,12 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
     const heroCount = countUniqueHeroes(skins);
     const useGroupedLayout = !strip && groupByHero && heroCount > 1;
     const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
-    const cellProps = { strip, showRank: strip ? false : showRank };
+    const cellProps = {
+      strip,
+      showRank: strip ? false : showRank,
+      rovProfileFrameId,
+      gameId: game.id,
+    };
 
     let runningIndex = 0;
 
