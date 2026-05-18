@@ -5,98 +5,107 @@ import {
   Fingerprint,
   Image,
   LineChart,
+  Scissors,
   Timer,
   Users,
 } from 'lucide-react';
-import { AnimatedCounter } from '../components/AnimatedCounter';
 import { HomeDevicesPreview, HomeStudioPreview } from '../components/home/HomeBentoPreviews';
 import { PageBadge } from '../components/Layout';
-import { STATS } from '../data/catalog';
 import { fadeUp, staggerContainer, springSnappy } from '../lib/motion';
 
 const features = [
   {
     icon: Timer,
-    title: 'ตั้งค่าใน 2 นาที',
-    text: 'เลือกเกม ฮีโร่ แล้วลากเรียงสกิน — ไม่ต้องใช้ Photoshop',
+    title: 'โปสเตอร์ใน 2 นาที',
+    text: 'เลือกสกิน ลากเรียง ส่งออก PNG — ไม่ต้องเปิด Photoshop',
   },
   {
     icon: Fingerprint,
-    title: 'บันทึกในเบราว์เซอร์',
-    text: 'งานของคุณอยู่ในเครื่อง ปลอดภัย ไม่ต้องสมัครก่อนลอง',
+    title: 'ทำงานในเบราว์เซอร์',
+    text: 'ไม่ต้องติดตั้ง ลองได้ทันที ข้อมูลเลือกอยู่ในเครื่องคุณ',
   },
   {
     icon: LineChart,
-    title: 'ปรับกริดยืดหยุ่น',
-    text: 'กำหนดแถว×คอลัมน์ ขนาดมุมมอง และลำดับได้ตามใจ',
-    stat: '4.5%',
+    title: 'กริดยืดหยุ่น',
+    text: 'กำหนดแถว×คอลัมน์ ขนาดมุมมอง ลำดับ และลายน้ำร้าน',
   },
+];
+
+const trustPoints = [
+  { icon: Image, label: 'ส่งออก PNG คมชัด' },
+  { icon: Scissors, label: 'จัดเรียงแบบสตูดิโอ' },
+  { icon: Users, label: 'สำหรับแม่ค้า / เซลล์ไอดี' },
 ];
 
 export function HomePage() {
   return (
-    <div>
+    <motion.div>
       <section className="hero-section">
-        <PageBadge>เว็บจัดเรียงสกินเกม</PageBadge>
+        <div className="hero-copy">
+          <PageBadge>สตูดิโอโปสเตอร์สกิน</PageBadge>
 
-        <motion.h1
-          className="hero-title"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="show"
-        >
-          <motion.span className="glow" variants={fadeUp}>
-            SKINCUT
-          </motion.span>
-          <br />
-          <motion.span variants={fadeUp}>จัดสกินให้สวยในไม่กี่คลิก</motion.span>
-        </motion.h1>
+          <motion.h1
+            className="hero-title"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.span className="glow" variants={fadeUp}>
+              SKINCUT
+            </motion.span>
+            <motion.span className="hero-title-line" variants={fadeUp}>
+              ตัด จัด ส่งออก — โปสเตอร์ขายไอดีพร้อมแชร์
+            </motion.span>
+          </motion.h1>
 
-        <motion.p
-          className="hero-sub"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springSnappy, delay: 0.15 }}
-        >
-          เลือกสกินที่ชอบ ลากเรียงอันดับ สร้างภาพกริดพร้อมแชร์ — UI ลื่นแบบแอปมือถือ
-        </motion.p>
+          <motion.p
+            className="hero-sub"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springSnappy, delay: 0.15 }}
+          >
+            เครื่องมือสำหรับแม่ค้าและเซลล์ไอดี ROV · MLBB · Arena Breakout — เน้นสร้างภาพสรุป
+            ไม่ใช่แคตตาล็อกสกิน
+          </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springSnappy, delay: 0.25 }}
-        >
-          <Link to="/games" className="btn-primary">
-            เริ่มจัดสกิน
-            <ArrowRight size={18} />
-          </Link>
-        </motion.div>
+          <motion.div
+            className="hero-cta-row"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springSnappy, delay: 0.25 }}
+          >
+            <Link to="/games" className="btn-primary">
+              เปิดสตูดิโอ
+              <ArrowRight size={18} />
+            </Link>
+            <Link to="/games" className="btn-secondary-outline">
+              <Scissors size={18} aria-hidden />
+              เลือกเกม
+            </Link>
+          </motion.div>
+        </div>
 
-        <motion.div
-          className="stats-row"
+        <motion.ul
+          className="hero-trust-row"
           variants={staggerContainer}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
         >
-          <motion.div className="stat-card" variants={fadeUp}>
-            <Users className="stat-icon" size={28} />
-            <AnimatedCounter value={STATS.users} />
-            <p className="label">ผู้ใช้งานทั้งหมด</p>
-          </motion.div>
-          <motion.div className="stat-card" variants={fadeUp}>
-            <Image className="stat-icon" size={28} />
-            <AnimatedCounter value={STATS.creations} />
-            <p className="label">กริดที่สร้างแล้ว</p>
-          </motion.div>
-        </motion.div>
+          {trustPoints.map(({ icon: Icon, label }) => (
+            <motion.li key={label} className="hero-trust-chip" variants={fadeUp}>
+              <Icon size={20} aria-hidden />
+              <span>{label}</span>
+            </motion.li>
+          ))}
+        </motion.ul>
       </section>
 
       <section style={{ marginTop: 80 }}>
-        <div className="section-head">
-          <h2>ทำอะไรได้บ้าง</h2>
-          <p>ROV · MLBB · Arena Breakout — เครื่องมือสร้างภาพสำหรับแฟนเกม</p>
-        </div>
+        <motion.div className="section-head">
+          <h2>ทำไมใช้ SkinCut</h2>
+          <p>โฟกัสที่ภาพขาย ไม่ใช่แค่ดูคลังสกิน</p>
+        </motion.div>
 
         <motion.div
           className="bento-grid"
@@ -110,12 +119,7 @@ export function HomePage() {
               <div className="bento-icon">
                 <f.icon size={24} />
               </div>
-              <h3>
-                {f.title}
-                {f.stat && (
-                  <span style={{ color: 'var(--accent)', marginLeft: 8 }}>{f.stat}</span>
-                )}
-              </h3>
+              <h3>{f.title}</h3>
               <p>{f.text}</p>
             </motion.article>
           ))}
@@ -126,9 +130,9 @@ export function HomePage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h3>สตูดิโอลื่น ลากได้จริง</h3>
+              <h3>แถบจัดเรียงแบบสตูดิโอ</h3>
               <p style={{ marginTop: 8 }}>
-                แถบสกินที่เลือกรองรับ drag-and-drop พร้อม spring animation — ความรู้สึกใกล้ Flutter 120fps
+                ลากสกินเรียงอันดับบนแถบพรีวิว ปรับขนาดมุมมอง แล้วส่งออกโปสเตอร์เต็มรูปแบบ
               </p>
             </motion.div>
             <HomeStudioPreview />
@@ -136,8 +140,8 @@ export function HomePage() {
 
           <motion.article className="bento-card wide" variants={fadeUp}>
             <motion.div>
-              <h3>ใช้ได้ทุกที่</h3>
-              <p style={{ marginTop: 8 }}>Responsive บนมือถือและจอใหญ่ ไม่ต้องติดตั้งแอป</p>
+              <h3>มือถือก็ทำโปสเตอร์ได้</h3>
+              <p style={{ marginTop: 8 }}>เมนูคลังแบบ drawer — เลือกตัวละครแล้วจัดสกินทันที</p>
             </motion.div>
             <HomeDevicesPreview />
           </motion.article>
@@ -152,27 +156,22 @@ export function HomePage() {
         transition={springSnappy}
       >
         <Users size={32} color="var(--accent)" style={{ marginBottom: 16 }} />
-        <h2 style={{ marginBottom: 12 }}>เข้าร่วมคอมมูนิตี้</h2>
+        <h2 style={{ marginBottom: 12 }}>ชุมชนแม่ค้า &amp; เซลล์ไอดี</h2>
         <p style={{ maxWidth: 480, margin: '0 auto 24px' }}>
-          แชร์ผลงาน รับทิปการจัดกริด และอัปเดตฟีเจอร์ใหม่
+          แชร์เทมเพลตโปสเตอร์ รับทิปการจัดกริด และอัปเดตฟีเจอร์ใหม่
         </p>
-        <a
-          href="https://facebook.com"
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary"
-        >
-          เข้ากลุ่ม Facebook
-        </a>
+        <Link to="/contact" className="btn-primary">
+          ติดต่อทีม SkinCut
+        </Link>
       </motion.section>
 
-      <section style={{ marginTop: 64, maxWidth: 720, marginInline: 'auto' }}>
-        <h2 style={{ marginBottom: 12 }}>SkinCut</h2>
-        <p style={{ fontSize: '0.95rem' }}>
+      <section className="legal-footnote" style={{ marginTop: 64 }}>
+        <h2>SkinCut</h2>
+        <p>
           เว็บนี้จัดทำโดยแฟนเกมเพื่อความบันเทิง ไม่ได้มีความเกี่ยวข้องกับ Garena หรือ Moonton
-          ทรัพย์สินในเกมเป็นของเจ้าของลิขสิทธิ์
+          ทรัพย์สินในเกมเป็นของเจ้าของลิขสิทธิ์ — SkinCut เป็นเครื่องมือสร้างภาพ ไม่ใช่แคตตาล็อกหรือบริการของ SkinSort
         </p>
       </section>
-    </div>
+    </motion.div>
   );
 }

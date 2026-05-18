@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { ModalPortal } from './ModalPortal';
 import { X, ZoomIn, ZoomOut } from 'lucide-react';
 import { cropImageToDataUrl, loadImage, type CropRect } from '../lib/crop-image';
@@ -30,6 +31,8 @@ export function ImageCropModal({
   onClose,
 }: ImageCropModalProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalA11y({ open: true, onClose, dialogRef });
   const [natural, setNatural] = useState({ w: 0, h: 0 });
   const [layout, setLayout] = useState({ offsetX: 0, offsetY: 0, scale: 1, dispW: 0, dispH: 0 });
   const [crop, setCrop] = useState<DisplayCrop | null>(null);
@@ -208,7 +211,11 @@ export function ImageCropModal({
       onClick={onClose}
     >
       <motion.div
+        ref={dialogRef}
         className="crop-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crop-modal-title"
         initial={{ scale: 0.96, y: 12 }}
         animate={{ scale: 1, y: 0 }}
         transition={springSnappy}
@@ -219,7 +226,7 @@ export function ImageCropModal({
       >
         <motion.div className="crop-modal-head">
           <motion.div>
-            <h3>{title}</h3>
+            <h3 id="crop-modal-title">{title}</h3>
             <p>{hint}</p>
           </motion.div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="ปิด">

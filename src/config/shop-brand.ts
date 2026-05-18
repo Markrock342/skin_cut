@@ -1,8 +1,8 @@
 /** แบรนด์ร้านสำหรับ watermark บน poster */
 export const SHOP_BRAND = {
   name: 'SkinCut',
-  tagline: 'จัดภาพสกินอัตโนมัติ',
-  logoUrl: '/favicon.svg',
+  tagline: 'สตูดิโอโปสเตอร์สกิน',
+  logoUrl: '/logo.svg',
 } as const;
 
 const STORAGE_KEY = 'skincut-shop-name';

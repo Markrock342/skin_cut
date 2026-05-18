@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Skin } from '../data/types';
 import { springSnappy } from '../lib/motion';
@@ -31,6 +31,7 @@ export function SkinCard({
   layoutId,
   imagePriority = false,
 }: SkinCardProps) {
+  const reduceMotion = useReducedMotion();
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
@@ -43,16 +44,19 @@ export function SkinCard({
 
   return (
     <motion.article
-      layoutId={layoutId}
-      layout
+      layoutId={reduceMotion ? undefined : layoutId}
+      layout={reduceMotion ? false : undefined}
       className={`skin-card${isDragging ? ' is-dragging' : ''}${selected ? ' selected' : ''}`}
       style={{ '--card-w': `${width}px`, '--hue': skin.hue } as React.CSSProperties}
       onClick={onSelect}
-      whileHover={onSelect ? { scale: 1.04, y: -2 } : { scale: 1.02 }}
-      whileTap={onSelect ? { scale: 0.98 } : undefined}
+      whileHover={
+        reduceMotion ? undefined : onSelect ? { scale: 1.04, y: -2 } : { scale: 1.02 }
+      }
+      whileTap={reduceMotion ? undefined : onSelect ? { scale: 0.98 } : undefined}
       transition={springSnappy}
       role={onSelect ? 'button' : undefined}
       tabIndex={onSelect ? 0 : undefined}
+      aria-label={onSelect ? `${skin.name}${selected ? ' (เลือกแล้ว)' : ''}` : undefined}
       onKeyDown={(e) => {
         if (onSelect && (e.key === 'Enter' || e.key === ' ')) {
           e.preventDefault();
@@ -78,7 +82,7 @@ export function SkinCard({
           <img
             className={`skin-card-img${imgLoaded ? ' is-loaded' : ''}`}
             src={imageSrc}
-            alt=""
+            alt={skin.name}
             loading={imagePriority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={imagePriority ? 'high' : 'auto'}

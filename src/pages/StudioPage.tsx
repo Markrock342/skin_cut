@@ -1,4 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom';
+import { MobaCatalogGate } from '../components/MobaCatalogGate';
 import { getGame, isMobaGame } from '../data/catalog';
 import type { GameId } from '../data/types';
 import { MobaStudioPage } from './MobaStudioPage';
@@ -21,7 +22,11 @@ export function StudioPage() {
   }
 
   if (isMobaGame(id)) {
-    return <MobaStudioPage />;
+    return (
+      <MobaCatalogGate gameId={id}>
+        <MobaStudioPage />
+      </MobaCatalogGate>
+    );
   }
 
   return <Navigate to="/games" replace />;

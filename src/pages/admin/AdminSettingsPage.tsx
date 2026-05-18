@@ -28,8 +28,27 @@ export function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const s = await fetchSiteSettings();
+        if (!cancelled) {
+          setMaintenance(Boolean(s.maintenance_mode));
+          setBonusCoins(Number(s.signup_bonus_coins) || 50);
+          setAnnouncement(String(s.announcement ?? ''));
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function saveAll() {
     setSaving(true);
@@ -38,6 +57,7 @@ export function AdminSettingsPage() {
       await updateSiteSetting('signup_bonus_coins', bonusCoins);
       await updateSiteSetting('announcement', announcement);
       setSaved(true);
+      await load();
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'บันทึกไม่สำเร็จ');

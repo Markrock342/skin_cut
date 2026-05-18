@@ -10,22 +10,11 @@ import type {
 import { GAMES } from './games';
 import rovBase from './rov/catalog.base.json';
 import mlbbBase from './mlbb/catalog.base.json';
+
 export { GAMES };
 
 type CatalogBundle = { heroes: Hero[]; skins: Skin[]; collections?: SkinCollection[] };
-
-const fetchedModules = import.meta.glob<{ default: CatalogBundle }>('./*/catalog.fetched.json', {
-  eager: true,
-});
-
-function pickCatalog(base: CatalogBundle, key: string): CatalogBundle {
-  const fetched = fetchedModules[key]?.default;
-  if (fetched?.heroes?.length && fetched.skins?.length) return fetched;
-  return base;
-}
-
-const rovCatalog = pickCatalog(rovBase as CatalogBundle, './rov/catalog.fetched.json');
-const mlbbCatalog = pickCatalog(mlbbBase as CatalogBundle, './mlbb/catalog.fetched.json');
+type MobaGameId = 'rov' | 'mlbb';
 
 const skinNames = [
   'Dimension Breaker',
@@ -49,30 +38,61 @@ function buildFallbackSkins(hero: Hero): Skin[] {
   }));
 }
 
+const indexedGames = new Set<MobaGameId>();
+const heroesByGame = new Map<MobaGameId, Hero[]>();
 const skinMap = new Map<string, Skin[]>();
 const skinById = new Map<string, Skin>();
-const collectionsByGame = new Map<'rov' | 'mlbb', SkinCollection[]>();
+const collectionsByGame = new Map<MobaGameId, SkinCollection[]>();
+const loadPromises = new Map<MobaGameId, Promise<void>>();
 
-function indexMobaCatalog(catalog: CatalogBundle) {
-  const gameId = catalog.heroes[0]?.gameId;
+function indexMobaCatalog(gameId: MobaGameId, catalog: CatalogBundle) {
+  if (indexedGames.has(gameId)) return;
+
+  heroesByGame.set(gameId, catalog.heroes);
   catalog.heroes.forEach((hero) => {
     const fromJson = catalog.skins.filter((s) => s.heroId === hero.id);
     skinMap.set(hero.id, fromJson.length ? fromJson : buildFallbackSkins(hero));
   });
   catalog.skins.forEach((skin) => skinById.set(skin.id, skin));
-  if (gameId === 'rov' || gameId === 'mlbb') {
-    collectionsByGame.set(gameId, catalog.collections ?? []);
-  }
+  collectionsByGame.set(gameId, catalog.collections ?? []);
+  indexedGames.add(gameId);
 }
 
-indexMobaCatalog(rovCatalog);
-indexMobaCatalog(mlbbCatalog);
+async function fetchCatalogBundle(gameId: MobaGameId): Promise<CatalogBundle> {
+  const base = (gameId === 'rov' ? rovBase : mlbbBase) as CatalogBundle;
+  try {
+    const mod = await import(`./${gameId}/catalog.fetched.json`);
+    const fetched = (mod.default ?? mod) as CatalogBundle;
+    if (fetched?.heroes?.length && fetched?.skins?.length) return fetched;
+  } catch {
+    /* ใช้ base ถ้าไม่มี fetched */
+  }
+  return base;
+}
 
-export function getCollectionsByGame(gameId: 'rov' | 'mlbb'): SkinCollection[] {
+/** โหลด catalog ต่อเกม (code-split chunk แยกจาก main bundle) */
+export function ensureMobaCatalog(gameId: MobaGameId): Promise<void> {
+  if (indexedGames.has(gameId)) return Promise.resolve();
+
+  let pending = loadPromises.get(gameId);
+  if (!pending) {
+    pending = fetchCatalogBundle(gameId).then((bundle) => {
+      indexMobaCatalog(gameId, bundle);
+    });
+    loadPromises.set(gameId, pending);
+  }
+  return pending;
+}
+
+export function isMobaCatalogReady(gameId: MobaGameId): boolean {
+  return indexedGames.has(gameId);
+}
+
+export function getCollectionsByGame(gameId: MobaGameId): SkinCollection[] {
   return collectionsByGame.get(gameId) ?? [];
 }
 
-export function getSkinsByCollection(gameId: 'rov' | 'mlbb', collectionId: string): Skin[] {
+export function getSkinsByCollection(gameId: MobaGameId, collectionId: string): Skin[] {
   const col = getCollectionsByGame(gameId).find((c) => c.id === collectionId);
   if (!col) return [];
   return col.skinIds.map((id) => skinById.get(id)).filter((s): s is Skin => Boolean(s));
@@ -97,12 +117,12 @@ export function getGame(gameId: GameId) {
   return g;
 }
 
-export function isMobaGame(gameId: GameId): gameId is 'rov' | 'mlbb' {
+export function isMobaGame(gameId: GameId): gameId is MobaGameId {
   return gameId === 'rov' || gameId === 'mlbb';
 }
 
-export function getHeroesByGame(gameId: 'rov' | 'mlbb') {
-  return gameId === 'rov' ? rovCatalog.heroes : mlbbCatalog.heroes;
+export function getHeroesByGame(gameId: MobaGameId) {
+  return heroesByGame.get(gameId) ?? [];
 }
 
 export function getSkinsByHero(heroId: string) {
@@ -114,7 +134,11 @@ export function getSkinById(skinId: string) {
 }
 
 export function getHero(heroId: string) {
-  return [...rovCatalog.heroes, ...mlbbCatalog.heroes].find((h) => h.id === heroId);
+  for (const gameId of indexedGames) {
+    const hero = heroesByGame.get(gameId)?.find((h) => h.id === heroId);
+    if (hero) return hero;
+  }
+  return undefined;
 }
 
 export const COIN_PACKAGES: CoinPackage[] = [
@@ -129,8 +153,3 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   { id: 'promptpay', name: 'PromptPay', hint: 'สแกนจ่ายผ่านพร้อมเพย์' },
   { id: 'truemoney', name: 'TrueMoney Wallet', hint: 'ชำระผ่าน TrueMoney' },
 ];
-
-export const STATS = {
-  users: 8420,
-  creations: 19340,
-};

@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Coins, LogOut, Moon, Shield, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Coins, LogOut, Menu, Moon, Shield, Sparkles, Sun, X } from 'lucide-react';
 import { formatCoins } from '../lib/format-coins';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { resolveIsAdmin } from '../lib/admin-access';
 import { useHeaderCompact } from '../hooks/useHeaderCompact';
+import { BrandLogo } from './BrandLogo';
 import { fadeUp, springSnappy } from '../lib/motion';
 
 const navItems = [
@@ -17,14 +20,34 @@ const navItems = [
 export function Layout() {
   const { pathname } = useLocation();
   const { user, logout, loading, authConfigured } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const headerCompact = useHeaderCompact();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isStudio = pathname.startsWith('/studio');
   const isAuthPage =
     pathname === '/login' || pathname === '/register' || pathname === '/register/success';
 
+  const visibleNav = navItems.filter((item) => !('auth' in item && item.auth) || authConfigured);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileNavOpen]);
+
   return (
     <>
-      <div className="app-bg" aria-hidden />
+      <a href="#main-content" className="skip-link">
+        ข้ามไปเนื้อหาหลัก
+      </a>
+      <motion.div className="app-bg" aria-hidden />
       <motion.header
         className={`site-header${headerCompact ? ' site-header--compact' : ''}`}
         data-compact={headerCompact || undefined}
@@ -33,15 +56,18 @@ export function Layout() {
         transition={springSnappy}
       >
         <NavLink to="/" className="brand">
-          <span className="brand-mark">SC</span>
-          <span>SkinCut</span>
+          <span className="brand-mark" aria-hidden>
+            <BrandLogo className="brand-mark__svg" />
+          </span>
+          <span>
+            Skin<em>Cut</em>
+          </span>
         </NavLink>
 
         {!isStudio && !isAuthPage && (
-          <nav className="nav-dock" aria-label="หลัก">
-            {navItems
-              .filter((item) => !('auth' in item && item.auth) || authConfigured)
-              .map((item) => (
+          <>
+            <nav className="nav-dock" aria-label="หลัก">
+              {visibleNav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -51,7 +77,18 @@ export function Layout() {
                   {item.label}
                 </NavLink>
               ))}
-          </nav>
+            </nav>
+            <button
+              type="button"
+              className="btn-icon mobile-nav-toggle"
+              aria-label={mobileNavOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+              aria-expanded={mobileNavOpen}
+              aria-controls="mobile-nav-drawer"
+              onClick={() => setMobileNavOpen((v) => !v)}
+            >
+              {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </>
         )}
 
         <motion.div
@@ -60,8 +97,26 @@ export function Layout() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <button type="button" className="btn-icon" aria-label="สลับธีม">
-            <Moon size={18} />
+          <button
+            type="button"
+            className={`btn-icon theme-toggle${theme === 'light' ? ' theme-toggle--light' : ''}`}
+            aria-label={theme === 'dark' ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+            aria-pressed={theme === 'light'}
+            onClick={(e) => toggleTheme(e.currentTarget)}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={theme}
+                className="theme-toggle__icon"
+                initial={{ rotate: -72, opacity: 0, scale: 0.45 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: 72, opacity: 0, scale: 0.45 }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                aria-hidden
+              >
+                {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+              </motion.span>
+            </AnimatePresence>
           </button>
           {!loading && user ? (
             <>
@@ -71,10 +126,11 @@ export function Layout() {
                   แอดมิน
                 </Link>
               )}
-              <span className="user-chip" title={user.email}>
+              <span className="user-chip">
                 <Coins size={14} aria-hidden />
                 {formatCoins(user.coins)}
                 <span className="user-chip-name">{user.displayName}</span>
+                <span className="sr-only">{user.email}</span>
               </span>
               <button type="button" className="btn-ghost" onClick={() => void logout()}>
                 <LogOut size={16} aria-hidden />
@@ -89,7 +145,37 @@ export function Layout() {
         </motion.div>
       </motion.header>
 
-      <main className="page-main">
+      {!isStudio && !isAuthPage && (
+        <>
+          <button
+            type="button"
+            className={`mobile-nav-backdrop${mobileNavOpen ? ' is-open' : ''}`}
+            aria-hidden={!mobileNavOpen}
+            tabIndex={mobileNavOpen ? 0 : -1}
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <nav
+            id="mobile-nav-drawer"
+            className={`mobile-nav-drawer${mobileNavOpen ? ' is-open' : ''}`}
+            aria-label="เมนูหลักมือถือ"
+            hidden={!mobileNavOpen}
+          >
+            {visibleNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `mobile-nav-link${isActive ? ' active' : ''}`}
+                onClick={() => setMobileNavOpen(false)}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </>
+      )}
+
+      <main id="main-content" className="page-main">
         <motion.div
           key={pathname}
           className="page-outlet"

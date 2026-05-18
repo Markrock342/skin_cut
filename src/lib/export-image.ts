@@ -1,5 +1,9 @@
-import html2canvas from 'html2canvas';
 import { isSortskinR2Url, resolveSkinImageUrl } from './skin-image-url';
+
+async function getHtml2Canvas() {
+  const { default: html2canvas } = await import('html2canvas');
+  return html2canvas;
+}
 
 async function waitForPosterImages(node: HTMLElement) {
   const images = [...node.querySelectorAll('img')];
@@ -52,6 +56,7 @@ async function inlineProxiedImages(node: HTMLElement) {
 
 export async function renderNodeToCanvas(node: HTMLElement) {
   await inlineProxiedImages(node);
+  const html2canvas = await getHtml2Canvas();
   return html2canvas(node, {
     scale: 2,
     useCORS: false,

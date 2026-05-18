@@ -40,8 +40,23 @@ export function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchAdminProfiles();
+        if (!cancelled) setUsers(data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();

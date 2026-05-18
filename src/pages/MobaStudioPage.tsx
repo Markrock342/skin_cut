@@ -6,6 +6,7 @@ import {
   Eye,
   Layers,
   ListOrdered,
+  Menu,
   Plus,
   Sparkles,
   Scan,
@@ -29,6 +30,7 @@ import { useStudio } from '../context/StudioContext';
 import { SortableSelectedStrip } from '../components/SortableSelectedStrip';
 import { SkinCard } from '../components/SkinCard';
 import { ModalPortal } from '../components/ModalPortal';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { DetectSkinGridIllustration } from '../components/DetectSkinGridIllustration';
 import { SkinPosterPreviewModal } from '../components/SkinPosterPreviewModal';
 import type { SkinPosterTemplate } from '../components/SkinPosterPreview';
@@ -108,11 +110,13 @@ export function MobaStudioPage() {
   const [detectProgress, setDetectProgress] = useState<number | null>(null);
   const [detectRows, setDetectRows] = useState<DetectRow[]>([]);
   const [detectMessage, setDetectMessage] = useState<string | null>(null);
-  const [posterTemplate, setPosterTemplate] = useState<SkinPosterTemplate>('dark-grid');
+  const [posterTemplate, setPosterTemplate] = useState<SkinPosterTemplate>('skincut-studio');
   const [groupByHero, setGroupByHero] = useState(true);
   const [showWatermark, setShowWatermark] = useState(true);
   const [shopName, setShopName] = useState(() => loadShopName());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const detectDialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (heroes.length && !heroes.some((h) => h.id === heroId)) {
@@ -129,7 +133,28 @@ export function MobaStudioPage() {
   useEffect(() => {
     setSearch('');
     setFilterMode('hero');
+    setSidebarOpen(false);
   }, [gid]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const mq = window.matchMedia('(max-width: 900px)');
+    if (!mq.matches) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [sidebarOpen]);
 
   const {
     selectedSkins,
@@ -220,8 +245,24 @@ export function MobaStudioPage() {
 
   const handleGameChange = (next: string) => {
     if (next === gid) return;
+    setSidebarOpen(false);
     navigate(`/studio/${next}`);
   };
+
+  const handleHeroSelect = (id: string) => {
+    setHeroId(id);
+    setSidebarOpen(false);
+  };
+
+  const handleCollectionSelect = (id: string) => {
+    setCollectionId(id);
+    setSidebarOpen(false);
+  };
+
+  const sidebarPickerLabel =
+    filterMode === 'tier'
+      ? (activeCollection?.name ?? 'ระดับสกิน')
+      : (activeHero?.name ?? 'ฮีโร่');
 
   const openPreviewModal = () => {
     if (selectedSkins.length === 0) {
@@ -408,6 +449,12 @@ export function MobaStudioPage() {
     setDetectMessage(null);
   };
 
+  useModalA11y({
+    open: showDetectModal,
+    onClose: closeDetectModal,
+    dialogRef: detectDialogRef,
+  });
+
   return (
     <motion.div>
       <Link to="/games" className="back-link">
@@ -415,8 +462,26 @@ export function MobaStudioPage() {
         ย้อนกลับ
       </Link>
 
-      <div className="studio-layout">
-        <aside className="studio-sidebar">
+      <motion.div className={`studio-layout${sidebarOpen ? ' studio-layout--sidebar-open' : ''}`}>
+        <button
+          type="button"
+          className="studio-sidebar-backdrop"
+          aria-label="ปิดคลังตัวละคร"
+          tabIndex={sidebarOpen ? 0 : -1}
+          onClick={() => setSidebarOpen(false)}
+        />
+        <aside className="studio-sidebar" aria-label="คลังตัวละครและชั้นสกิน">
+          <div className="studio-sidebar-top">
+            <p className="studio-sidebar-drawer-title">คลังสตูดิโอ</p>
+            <button
+              type="button"
+              className="icon-button studio-sidebar-close"
+              aria-label="ปิดรายการ"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X size={18} />
+            </button>
+          </div>
           <label className="studio-sidebar-label" htmlFor="studio-game-select">
             เลือกเกม
           </label>
@@ -434,40 +499,48 @@ export function MobaStudioPage() {
             ))}
           </select>
 
-          <motion.div className="filter-tabs">
-            <button type="button" className={filterMode === 'hero' ? 'active' : ''} onClick={() => setFilterMode('hero')}>
-              ฮีโร่
+          <motion.div className="studio-mode-switch" role="tablist" aria-label="โหมดคลัง">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filterMode === 'hero'}
+              className={filterMode === 'hero' ? 'active' : ''}
+              onClick={() => setFilterMode('hero')}
+            >
+              ตามตัวละคร
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={filterMode === 'tier'}
               className={filterMode === 'tier' ? 'active' : ''}
               disabled={!tierModeReady}
-              title={tierModeReady ? undefined : 'รัน npm run sync:sortskin เพื่อโหลดระดับสกิน'}
+              title={tierModeReady ? undefined : 'รัน npm run sync:sortskin เพื่อโหลดชั้นสกิน'}
               onClick={() => tierModeReady && setFilterMode('tier')}
             >
-              ระดับสกิน
+              ตามชั้นสกิน
             </button>
           </motion.div>
 
           <p className="studio-sidebar-section-title">
-            {filterMode === 'tier' ? 'ระดับสกิน' : 'เลือกฮีโร่'}
+            {filterMode === 'tier' ? 'ชั้นสกิน' : 'คลังตัวละคร'}
           </p>
 
           <input
             type="search"
-            placeholder={filterMode === 'tier' ? 'ค้นหาระดับสกิน...' : 'ค้นหาฮีโร่...'}
+            placeholder={filterMode === 'tier' ? 'ค้นหาชั้นสกิน...' : 'ค้นหาตัวละคร...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          <motion.div className="hero-list">
+          <motion.div className="catalog-list">
             {filterMode === 'hero'
               ? filteredHeroes.map((h) => (
                   <button
                     key={h.id}
                     type="button"
                     className={heroId === h.id ? 'active' : ''}
-                    onClick={() => setHeroId(h.id)}
+                    onClick={() => handleHeroSelect(h.id)}
                   >
                     <span>{h.name}</span>
                     <span className="count">{h.skinCount} สกิน</span>
@@ -478,7 +551,7 @@ export function MobaStudioPage() {
                     key={c.id}
                     type="button"
                     className={collectionId === c.id ? 'active' : ''}
-                    onClick={() => setCollectionId(c.id)}
+                    onClick={() => handleCollectionSelect(c.id)}
                   >
                     <span>{c.name}</span>
                     <span className="count">{c.skinCount} สกิน</span>
@@ -488,9 +561,29 @@ export function MobaStudioPage() {
         </aside>
 
         <motion.div className="studio-main" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={springSnappy}>
+          <div className="studio-mobile-bar">
+            <button
+              type="button"
+              className="studio-menu-btn"
+              aria-expanded={sidebarOpen}
+              aria-controls="studio-sidebar-picker"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={20} aria-hidden />
+              <span className="studio-menu-btn-label">เปิดคลังตัวละคร</span>
+            </button>
+            <div className="studio-mobile-bar-text" id="studio-sidebar-picker">
+              <span className="studio-mobile-bar-game">{game.shortName}</span>
+              <strong>{sidebarPickerLabel}</strong>
+              <span className="studio-mobile-bar-meta">
+                {filterMode === 'tier' ? 'ชั้นสกิน' : `${displaySkins.length} สกินในคลัง`}
+              </span>
+            </div>
+          </div>
+
           <section className="panel">
             <div className="panel-head">
-              <div>
+              <div className="panel-head-title">
                 <h2>
                   {filterMode === 'tier'
                     ? (activeCollection?.name ?? 'ระดับสกิน')
@@ -498,19 +591,18 @@ export function MobaStudioPage() {
                 </h2>
                 <p style={{ marginTop: 4, fontSize: '0.85rem' }}>
                   {filterMode === 'tier'
-                    ? `เลือกสกินในกลุ่ม ${activeCollection?.name ?? ''} · รูปจาก SortSkin`
-                    : `เลือกสกินเพื่อเพิ่มในแถบด้านบน${displaySkins[0]?.imageUrl ? ' · รูปจาก SortSkin' : ''}`}
+                    ? `แตะการ์ดเพื่อเพิ่มลงแถบจัดเรียง — กลุ่ม ${activeCollection?.name ?? ''}`
+                    : 'แตะการ์ดเพื่อเพิ่มลงแถบจัดเรียงด้านล่าง'}
                 </p>
               </div>
               <button
                 type="button"
-                className="btn-secondary"
-                style={{ width: 'auto', minHeight: 40 }}
+                className="btn-secondary panel-head-action"
                 onClick={handleSelectAllVisible}
                 disabled={displaySkins.length === 0}
               >
                 <UserPlus size={16} />
-                {filterMode === 'tier' ? 'เพิ่มสกินในกลุ่มนี้ทั้งหมด' : 'เพิ่มสกินฮีโร่นี้ทั้งหมด'}
+                {filterMode === 'tier' ? 'เพิ่มทั้งชั้นนี้' : 'เพิ่มทุกสกินตัวนี้'}
               </button>
             </div>
 
@@ -665,7 +757,7 @@ export function MobaStudioPage() {
             </p>
           </section>
         </motion.div>
-      </div>
+      </motion.div>
 
       <SkinPosterPreviewModal
         open={showPreviewModal}
@@ -695,6 +787,7 @@ export function MobaStudioPage() {
               onClick={() => !detecting && closeDetectModal()}
             >
             <motion.div
+              ref={detectDialogRef}
               className="detect-modal"
               role="dialog"
               aria-modal="true"

@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Sparkles, X } from 'lucide-react';
 import type { Game } from '../data/types';
@@ -46,6 +47,8 @@ export function SkinPosterPreviewModal({
   exporting = false,
 }: SkinPosterPreviewModalProps) {
   const posterRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalA11y({ open, onClose, dialogRef });
   const gridLabel = formatGridLabel(gridFormat);
   const { cols } = parseGridFormat(gridFormat);
   const cost = calcStudioCost(skins.length);
@@ -80,6 +83,7 @@ export function SkinPosterPreviewModal({
             onClick={onClose}
           >
             <motion.div
+              ref={dialogRef}
               className="preview-modal"
               role="dialog"
               aria-modal="true"

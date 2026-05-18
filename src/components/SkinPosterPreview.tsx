@@ -3,10 +3,16 @@ import type { Game, Skin } from '../data/types';
 import { SHOP_BRAND } from '../config/shop-brand';
 import { getHero } from '../data/catalog';
 import { groupSkinsByHero, countUniqueHeroes } from '../lib/poster-groups';
+import { BrandLogo } from './BrandLogo';
 import { POSTER_TEMPLATE_LABELS } from '../lib/poster-labels';
 import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
 
-export type SkinPosterTemplate = 'dark-grid' | 'market-card' | 'clean-showcase' | 'compact-strip';
+export type SkinPosterTemplate =
+  | 'skincut-studio'
+  | 'dark-grid'
+  | 'market-card'
+  | 'clean-showcase'
+  | 'compact-strip';
 
 interface SkinPosterPreviewProps {
   game: Game;
@@ -116,19 +122,32 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
       >
         {!strip ? (
           <div className="skin-poster__header">
-            <div>
-              <span className="skin-poster__eyebrow">{POSTER_TEMPLATE_LABELS[template]}</span>
-              <h2>
-                {game.shortName}
-                {useGroupedLayout ? ` · ${heroCount} ฮีโร่` : ''} · สกินที่เลือก
-              </h2>
-              {useGroupedLayout ? (
-                <p className="skin-poster__subtitle">จัดกลุ่มตามฮีโร่ · เรียงตามความแรร์ในแต่ละกลุ่ม</p>
-              ) : null}
-            </div>
-            <strong>
+            {template === 'skincut-studio' ? (
+              <div className="skin-poster__brand-row">
+                <BrandLogo size={48} />
+                <div>
+                  <span className="skin-poster__eyebrow">SKINCUT STUDIO</span>
+                  <h2>
+                    {game.shortName}
+                    {useGroupedLayout ? ` · ${heroCount} ตัวละคร` : ''}
+                  </h2>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <span className="skin-poster__eyebrow">{POSTER_TEMPLATE_LABELS[template]}</span>
+                <h2>
+                  {game.shortName}
+                  {useGroupedLayout ? ` · ${heroCount} ฮีโร่` : ''} · สกินที่เลือก
+                </h2>
+                {useGroupedLayout ? (
+                  <p className="skin-poster__subtitle">จัดกลุ่มตามฮีโร่ · เรียงตามความแรร์ในแต่ละกลุ่ม</p>
+                ) : null}
+              </div>
+            )}
+            <strong className="skin-poster__count-badge">
               {skins.length} สกิน
-              {heroCount > 1 ? ` · ${heroCount} ฮีโร่` : ''}
+              {heroCount > 1 ? ` · ${heroCount} ตัว` : ''}
             </strong>
           </div>
         ) : null}
@@ -180,7 +199,7 @@ export const SkinPosterPreview = forwardRef<HTMLDivElement, SkinPosterPreviewPro
 
         {showWatermark && !strip ? (
           <div className="skin-poster__watermark" aria-hidden>
-            <img src={SHOP_BRAND.logoUrl} alt="" width={36} height={36} />
+            <BrandLogo size={36} />
             <div className="skin-poster__watermark-text">
               <strong>{shopName}</strong>
               <span>{SHOP_BRAND.tagline}</span>

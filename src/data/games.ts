@@ -14,6 +14,7 @@ export const GAMES: Game[] = [
     accent: '#38bdf8',
     mode: 'moba-grid',
     imageUrl: '/assets/games/rov.png',
+    cardImageFit: 'contain',
   },
   {
     id: 'mlbb',
@@ -25,6 +26,7 @@ export const GAMES: Game[] = [
     accent: '#f472b6',
     mode: 'moba-grid',
     imageUrl: '/assets/games/mlbb.png',
+    cardImageFit: 'contain',
   },
   {
     id: 'arena-breakout',

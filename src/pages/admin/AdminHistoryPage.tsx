@@ -36,8 +36,23 @@ export function AdminHistoryPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchAdminHistory();
+        if (!cancelled) setRows(data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = rows.filter((r) => {
     if (filter === 'pending') return r.status === 'pending';

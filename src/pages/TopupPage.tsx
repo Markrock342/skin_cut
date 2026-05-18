@@ -1,115 +1,182 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Coins } from 'lucide-react';
+import { AlertTriangle, Check, Coins, QrCode, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { COIN_PACKAGES, PAYMENT_METHODS } from '../data/catalog';
-import { fadeUp, springSnappy } from '../lib/motion';
+import { fadeUp, springSnappy, staggerContainer } from '../lib/motion';
+
+const PAY_ICONS = {
+  promptpay: QrCode,
+  truemoney: Wallet,
+} as const;
 
 export function TopupPage() {
   const { user } = useAuth();
   const [pkgId, setPkgId] = useState<string | null>(null);
   const [payId, setPayId] = useState<string | null>(null);
 
-  const canPay = pkgId && payId;
+  const selectedPkg = COIN_PACKAGES.find((p) => p.id === pkgId);
+  const selectedPay = PAYMENT_METHODS.find((p) => p.id === payId);
+  const canPay = Boolean(selectedPkg && selectedPay);
 
   return (
-    <div style={{ paddingBottom: 88 }}>
-      <motion.div className="page-title-block" variants={fadeUp} initial="hidden" animate="show">
+    <motion.div
+      className="topup-page"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={springSnappy}
+    >
+      <motion.header className="topup-hero" variants={fadeUp} initial="hidden" animate="show">
+        <div className="topup-hero__balance" aria-label={`ยอดคงเหลือ ${user?.coins ?? 0} คอยน์`}>
+          <span className="topup-hero__icon" aria-hidden>
+            <Coins size={28} />
+          </span>
+          <motion.div
+            className="topup-hero__amount"
+            key={user?.coins}
+            initial={{ scale: 0.92, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={springSnappy}
+          >
+            <span className="topup-hero__label">ยอดคงเหลือ</span>
+            <strong>{(user?.coins ?? 0).toLocaleString('th-TH')}</strong>
+            <span className="topup-hero__unit">คอยน์</span>
+          </motion.div>
+        </div>
         <h1>เติมคอยน์</h1>
-        <p>
-          ยอดคงเหลือ {user?.coins ?? 0} คอยน์ — เลือกจำนวนและวิธีชำระเงิน
-        </p>
-      </motion.div>
+        <p>เลือกแพ็กเกจ แล้วชำระด้วยช่องทางที่สะดวก</p>
+      </motion.header>
 
-      <motion.div
-        className="topup-grid"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={springSnappy}
+      <motion.section
+        className="topup-section"
+        aria-labelledby="topup-packages-heading"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
       >
-        <motion.div variants={fadeUp}>
-          <h3>1 เลือกจำนวน</h3>
-          {COIN_PACKAGES.map((pkg) => (
-            <motion.button
-              key={pkg.id}
-              type="button"
-              className={`option-card${pkgId === pkg.id ? ' selected' : ''}`}
-              onClick={() => setPkgId(pkg.id)}
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              <Coins size={28} color="var(--accent)" />
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <strong style={{ display: 'block', color: 'var(--text)' }}>
-                  {pkg.coins} คอยน์
-                </strong>
-                <span>{pkg.price} บาท</span>
-                {pkg.bonus && <span className="option-bonus"> {pkg.bonus}</span>}
-              </div>
-              <span className="radio" aria-hidden />
-            </motion.button>
-          ))}
-        </motion.div>
-
-        <motion.div variants={fadeUp}>
-          <h3>2 วิธีชำระเงิน</h3>
-          {PAYMENT_METHODS.map((m) => (
-            <motion.button
-              key={m.id}
-              type="button"
-              className={`option-card${payId === m.id ? ' selected' : ''}`}
-              onClick={() => setPayId(m.id)}
-              whileHover={{ x: 4 }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'var(--surface-2)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontWeight: 700,
-                  fontSize: '0.7rem',
-                }}
+        <h2 id="topup-packages-heading">แพ็กเกจ</h2>
+        <div className="topup-packages" role="radiogroup" aria-labelledby="topup-packages-heading">
+          {COIN_PACKAGES.map((pkg) => {
+            const selected = pkgId === pkg.id;
+            return (
+              <motion.button
+                key={pkg.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={`topup-package${selected ? ' selected' : ''}`}
+                onClick={() => setPkgId(pkg.id)}
+                variants={fadeUp}
+                whileTap={{ scale: 0.97 }}
               >
-                {m.id === 'promptpay' ? 'PP' : 'TM'}
-              </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <strong style={{ display: 'block', color: 'var(--text)' }}>{m.name}</strong>
-                <span>{m.hint}</span>
-              </div>
-              <span className="radio" aria-hidden />
-            </motion.button>
-          ))}
+                {selected && (
+                  <span className="topup-package__check" aria-hidden>
+                    <Check size={14} strokeWidth={3} />
+                  </span>
+                )}
+                <span className="topup-package__coins">{pkg.coins.toLocaleString('th-TH')}</span>
+                <span className="topup-package__unit">คอยน์</span>
+                <span className="topup-package__price">฿{pkg.price.toLocaleString('th-TH')}</span>
+                {pkg.bonus ? <span className="topup-package__bonus">{pkg.bonus}</span> : null}
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.section>
 
-          <div className="alert-box">
-            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
-            <span>
-              คอยน์ที่ซื้อแล้ว<strong> ไม่สามารถขอคืนเงิน</strong>ได้หลังชำระสำเร็จ
-              (ยกเว้นกรณีระบบผิดพลาด) — ดู{' '}
-              <Link to="/terms#coins">ข้อกำหนด §5 คอยน์</Link>
-            </span>
-          </div>
+      <motion.section
+        className="topup-section"
+        aria-labelledby="topup-pay-heading"
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+      >
+        <h2 id="topup-pay-heading">ชำระเงิน</h2>
+        <motion.div
+          className="topup-pay-row"
+          role="radiogroup"
+          aria-labelledby="topup-pay-heading"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+        >
+          {PAYMENT_METHODS.map((m) => {
+            const selected = payId === m.id;
+            const Icon = PAY_ICONS[m.id as keyof typeof PAY_ICONS] ?? Wallet;
+            return (
+              <motion.button
+                key={m.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={`topup-pay${selected ? ' selected' : ''}`}
+                onClick={() => setPayId(m.id)}
+                variants={fadeUp}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="topup-pay__icon" aria-hidden>
+                  <Icon size={22} />
+                </span>
+                <span className="topup-pay__name">{m.name}</span>
+                <span className="topup-pay__hint">{m.hint}</span>
+              </motion.button>
+            );
+          })}
         </motion.div>
-      </motion.div>
 
-      <div className="topup-bar">
-        <span>
-          {canPay
-            ? `พร้อมชำระ — ${COIN_PACKAGES.find((p) => p.id === pkgId)?.coins} คอยน์`
-            : 'เลือกจำนวนคอยน์และวิธีชำระ'}
-        </span>
+        <div className="topup-notice">
+          <AlertTriangle size={18} style={{ flexShrink: 0 }} aria-hidden />
+          <span>
+            คอยน์ที่ซื้อแล้ว<strong> ไม่สามารถขอคืนเงิน</strong>ได้หลังชำระสำเร็จ
+            (ยกเว้นกรณีระบบผิดพลาด) — ดู{' '}
+            <Link to="/terms#coins">ข้อกำหนด §5 คอยน์</Link>
+          </span>
+        </div>
+      </motion.section>
+
+      <motion.aside
+        className="topup-checkout"
+        aria-label="สรุปการชำระ"
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+      >
+        <div className="topup-checkout__rows">
+          <motion.div
+            className="topup-checkout__row"
+            animate={{ opacity: selectedPkg ? 1 : 0.55 }}
+            transition={{ duration: 0.2 }}
+          >
+            <span>แพ็กเกจ</span>
+            <strong>{selectedPkg ? `${selectedPkg.coins.toLocaleString('th-TH')} คอยน์` : '—'}</strong>
+          </motion.div>
+          <motion.div
+            className="topup-checkout__row"
+            animate={{ opacity: selectedPay ? 1 : 0.55 }}
+            transition={{ duration: 0.2 }}
+          >
+            <span>ช่องทาง</span>
+            <strong>{selectedPay?.name ?? '—'}</strong>
+          </motion.div>
+          <div className="topup-checkout__row topup-checkout__row--total">
+            <span>ยอดชำระ</span>
+            <strong>
+              {selectedPkg ? `฿${selectedPkg.price.toLocaleString('th-TH')}` : '—'}
+            </strong>
+          </div>
+        </div>
+
         <motion.button
           type="button"
-          className="btn-primary"
+          className="btn-primary topup-checkout__cta"
           disabled={!canPay}
-          whileHover={canPay ? { scale: 1.03 } : undefined}
+          whileHover={canPay ? { scale: 1.02 } : undefined}
+          whileTap={canPay ? { scale: 0.98 } : undefined}
         >
-          ชำระเงิน →
+          {canPay ? `ชำระ ฿${selectedPkg!.price.toLocaleString('th-TH')}` : 'เลือกแพ็กเกจและช่องทางชำระ'}
         </motion.button>
-      </div>
-    </div>
+      </motion.aside>
+    </motion.div>
   );
 }

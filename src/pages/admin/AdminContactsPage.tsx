@@ -41,12 +41,23 @@ export function AdminContactsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    setNote(selected?.adminNote ?? '');
-  }, [selected]);
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const list = await fetchContactMessages();
+        if (!cancelled) setMessages(list);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered =
     statusFilter === 'all' ? messages : messages.filter((m) => m.status === statusFilter);
@@ -67,6 +78,7 @@ export function AdminContactsPage() {
       if (patch.status) updated.status = patch.status;
       setMessages((prev) => prev.map((m) => (m.id === msg.id ? updated : m)));
       setSelected(updated);
+      if (patch.adminNote !== undefined) setNote(patch.adminNote);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'บันทึกไม่สำเร็จ');
     } finally {
@@ -107,6 +119,7 @@ export function AdminContactsPage() {
                   className={`admin-inbox-item${selected?.id === m.id ? ' active' : ''}${m.status === 'new' ? ' unread' : ''}`}
                   onClick={() => {
                     setSelected(m);
+                    setNote(m.adminNote ?? '');
                     if (m.status === 'new') void saveSelected(m, { status: 'read' });
                   }}
                 >
