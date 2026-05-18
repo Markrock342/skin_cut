@@ -10,13 +10,13 @@ import { fadeUp, springSnappy } from '../lib/motion';
 const navItems = [
   { to: '/', label: 'หน้าแรก', end: true },
   { to: '/games', label: 'เกมส์' },
-  { to: '/topup', label: 'เติมคอยน์' },
-  { to: '/history', label: 'ประวัติ' },
+  { to: '/topup', label: 'เติมคอยน์', auth: true },
+  { to: '/history', label: 'ประวัติ', auth: true },
 ];
 
 export function Layout() {
   const { pathname } = useLocation();
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, authConfigured } = useAuth();
   const headerCompact = useHeaderCompact();
   const isStudio = pathname.startsWith('/studio');
   const isAuthPage =
@@ -39,16 +39,18 @@ export function Layout() {
 
         {!isStudio && !isAuthPage && (
           <nav className="nav-dock" aria-label="หลัก">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => (isActive ? 'active' : '')}
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {navItems
+              .filter((item) => !('auth' in item && item.auth) || authConfigured)
+              .map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => (isActive ? 'active' : '')}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
           </nav>
         )}
 
@@ -79,11 +81,11 @@ export function Layout() {
                 ออก
               </button>
             </>
-          ) : (
+          ) : authConfigured ? (
             <Link to="/login" className="btn-ghost">
               เข้าสู่ระบบ
             </Link>
-          )}
+          ) : null}
         </motion.div>
       </motion.header>
 

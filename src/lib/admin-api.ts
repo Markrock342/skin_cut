@@ -6,7 +6,7 @@ import type {
   SiteSettingKey,
   SiteSettings,
 } from '../types/admin';
-import { supabase } from './supabase';
+import { requireSupabase } from './supabase';
 
 function mapProfile(row: Record<string, unknown>): AdminProfile {
   return {
@@ -48,13 +48,13 @@ function adminError(error: { message?: string; code?: string }): never {
 }
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-  const { data, error } = await supabase.rpc('admin_dashboard_stats');
+  const { data, error } = await requireSupabase().rpc('admin_dashboard_stats');
   if (error) adminError(error);
   return data as AdminStats;
 }
 
 export async function fetchAdminProfiles(): Promise<AdminProfile[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('profiles')
     .select(
       'id, email, display_name, coins, is_admin, terms_accepted_at, terms_version, created_at',
@@ -74,7 +74,7 @@ export async function updateProfileAdmin(
   if (patch.coins != null) body.coins = Math.max(0, patch.coins);
   if (patch.isAdmin != null) body.is_admin = patch.isAdmin;
 
-  const { error } = await supabase.from('profiles').update(body).eq('id', userId);
+  const { error } = await requireSupabase().from('profiles').update(body).eq('id', userId);
   if (error) adminError(error);
 }
 
@@ -83,7 +83,7 @@ export async function adjustUserCoins(
   delta: number,
   reason?: string,
 ): Promise<number> {
-  const { data, error } = await supabase.rpc('admin_adjust_coins', {
+  const { data, error } = await requireSupabase().rpc('admin_adjust_coins', {
     p_user_id: userId,
     p_delta: delta,
     p_reason: reason ?? null,
@@ -93,7 +93,7 @@ export async function adjustUserCoins(
 }
 
 export async function fetchAdminHistory(limit = 100): Promise<AdminHistoryRow[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('activity_history')
     .select('id, user_id, title, kind, status, created_at, profiles(display_name)')
     .order('created_at', { ascending: false })
@@ -120,12 +120,12 @@ export async function updateHistoryStatus(
   id: string,
   status: AdminHistoryRow['status'],
 ): Promise<void> {
-  const { error } = await supabase.from('activity_history').update({ status }).eq('id', id);
+  const { error } = await requireSupabase().from('activity_history').update({ status }).eq('id', id);
   if (error) adminError(error);
 }
 
 export async function fetchContactMessages(): Promise<ContactMessage[]> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('contact_messages')
     .select('*')
     .order('created_at', { ascending: false })
@@ -143,12 +143,12 @@ export async function updateContactMessage(
   if (patch.status) body.status = patch.status;
   if (patch.adminNote !== undefined) body.admin_note = patch.adminNote;
 
-  const { error } = await supabase.from('contact_messages').update(body).eq('id', id);
+  const { error } = await requireSupabase().from('contact_messages').update(body).eq('id', id);
   if (error) adminError(error);
 }
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
-  const { data, error } = await supabase.from('site_settings').select('key, value');
+  const { data, error } = await requireSupabase().from('site_settings').select('key, value');
   if (error) adminError(error);
 
   const out: SiteSettings = {
@@ -165,7 +165,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function updateSiteSetting(key: SiteSettingKey, value: unknown): Promise<void> {
-  const { error } = await supabase
+  const { error } = await requireSupabase()
     .from('site_settings')
     .update({ value, updated_at: new Date().toISOString() })
     .eq('key', key);

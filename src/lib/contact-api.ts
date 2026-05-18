@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { requireSupabase } from './supabase';
 
 export type ContactCategory = 'general' | 'billing' | 'privacy' | 'ip' | 'bug';
 
@@ -11,7 +11,7 @@ export type ContactPayload = {
 };
 
 export async function submitContactMessage(payload: ContactPayload): Promise<void> {
-  const { error } = await supabase.from('contact_messages').insert({
+  const { error } = await requireSupabase().from('contact_messages').insert({
     name: payload.name.trim(),
     email: payload.email.trim().toLowerCase(),
     category: payload.category,

@@ -48,6 +48,17 @@ npm run fetch:assets -- --game=rov --limit=5
 - Build: `npm run build`
 - Output: `dist`
 
+### ตัวแปรสภาพแวดล้อม (จำเป็น — ตั้งใน Vercel → Settings → Environment Variables)
+
+| ชื่อ | ค่า |
+|------|-----|
+| `VITE_SUPABASE_URL` | Project URL จาก [Supabase](https://supabase.com/dashboard) → Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | `anon` / publishable key จากหน้าเดียวกัน |
+
+เลือก **Production** (และ Preview ถ้าต้องการ) แล้ว **Redeploy** — Vite ฝังค่าตอน build ไม่ใช่ runtime
+
+รัน migration: `npm run db:migrate` หรือวาง SQL ใน `supabase/migrations/` บน Supabase SQL Editor
+
 ## Stack
 
 Vite · React · TypeScript · Framer Motion · @dnd-kit · html2canvas

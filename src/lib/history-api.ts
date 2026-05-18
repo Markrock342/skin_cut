@@ -1,7 +1,7 @@
 import type { ActivityHistoryItem } from '../types/auth';
 import { withTimeout } from './auth-api';
 import type { PostgrestResponse } from '@supabase/supabase-js';
-import { type ActivityHistoryRow, supabase } from './supabase';
+import { type ActivityHistoryRow, requireSupabase } from './supabase';
 
 function mapRow(row: ActivityHistoryRow): ActivityHistoryItem {
   return {
@@ -16,7 +16,7 @@ function mapRow(row: ActivityHistoryRow): ActivityHistoryItem {
 export async function fetchActivityHistory(userId: string): Promise<ActivityHistoryItem[]> {
   const { data, error } = await withTimeout(
     Promise.resolve(
-      supabase
+      requireSupabase()
         .from('activity_history')
         .select('id, user_id, title, kind, status, created_at')
         .eq('user_id', userId)
@@ -40,7 +40,7 @@ export async function addActivityHistory(
   userId: string,
   item: Pick<ActivityHistoryItem, 'title' | 'kind' | 'status'>,
 ): Promise<ActivityHistoryItem> {
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('activity_history')
     .insert({
       user_id: userId,

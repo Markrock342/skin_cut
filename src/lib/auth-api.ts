@@ -3,7 +3,7 @@ import { TERMS_VERSION } from '../content/legal';
 import type { RegisterOutcome } from './auth-types';
 import type { AuthUser } from '../types/auth';
 import { getBootstrapAdminEmails, resolveIsAdmin } from './admin-access';
-import { type ProfileRow, supabase } from './supabase';
+import { type ProfileRow, requireSupabase } from './supabase';
 
 function mapProfile(row: ProfileRow, email: string): AuthUser {
   const user: AuthUser = {
@@ -58,7 +58,7 @@ export function withTimeout<T>(promise: PromiseLike<T>, label: string): Promise<
 }
 
 export async function ensureMyProfile(): Promise<void> {
-  const { error } = await supabase.rpc('ensure_my_profile');
+  const { error } = await requireSupabase().rpc('ensure_my_profile');
   if (error && !error.message.includes('ensure_my_profile') && error.code !== 'PGRST202') {
     throw new Error(error.message);
   }
@@ -67,7 +67,7 @@ export async function ensureMyProfile(): Promise<void> {
 export async function resendSignupConfirmation(email: string): Promise<void> {
   const normalized = email.trim().toLowerCase();
   const { error } = await withTimeout(
-    supabase.auth.resend({ type: 'signup', email: normalized }),
+    requireSupabase().auth.resend({ type: 'signup', email: normalized }),
     'ส่งอีเมลยืนยัน',
   );
   if (error) throw new Error(mapAuthError(error.message));
@@ -94,7 +94,7 @@ async function fetchProfileOnce(
 ): Promise<AuthUser> {
   const { data, error } = await timedQuery(
     'โหลดโปรไฟล์',
-    supabase
+    requireSupabase()
       .from('profiles')
       .select('id, display_name, coins, created_at, email, is_admin')
       .eq('id', userId)
@@ -114,7 +114,7 @@ async function fetchProfileOnce(
     await withTimeout(ensureMyProfile(), 'สร้างโปรไฟล์').catch(() => undefined);
     const retry = await timedQuery(
       'โหลดโปรไฟล์',
-      supabase
+      requireSupabase()
         .from('profiles')
         .select('id, display_name, coins, created_at, email, is_admin')
         .eq('id', userId)
@@ -168,7 +168,7 @@ export function loadSessionUser(
 
 /** มอบ is_admin ใน DB ให้อีเมลใน bootstrap_admin_emails (site_settings) */
 export async function bootstrapClaimAdmin(): Promise<boolean> {
-  const { data, error } = await supabase.rpc('bootstrap_claim_admin');
+  const { data, error } = await requireSupabase().rpc('bootstrap_claim_admin');
   if (error) {
     if (error.message.includes('bootstrap_claim_admin') || error.code === 'PGRST202') {
       return false;
@@ -179,7 +179,7 @@ export async function bootstrapClaimAdmin(): Promise<boolean> {
 }
 
 export async function recordTermsAcceptance(version: string = TERMS_VERSION): Promise<void> {
-  const { error } = await supabase.rpc('accept_terms', { p_version: version });
+  const { error } = await requireSupabase().rpc('accept_terms', { p_version: version });
   if (error) {
     if (error.message.includes('accept_terms') || error.code === 'PGRST202') {
       throw new Error(
@@ -207,7 +207,7 @@ export async function register(input: {
   if (displayName.length < 2) throw new Error('ชื่อที่แสดงต้องมีอย่างน้อย 2 ตัวอักษร');
   if (input.password.length < 8) throw new Error('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await requireSupabase().auth.signUp({
     email,
     password: input.password,
     options: {
@@ -236,7 +236,7 @@ export async function login(input: { email: string; password: string }): Promise
   const email = input.email.trim().toLowerCase();
 
   const { data, error } = await withTimeout(
-    supabase.auth.signInWithPassword({
+    requireSupabase().auth.signInWithPassword({
       email,
       password: input.password,
     }),
@@ -262,12 +262,12 @@ export async function login(input: { email: string; password: string }): Promise
 }
 
 export async function logout(): Promise<void> {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await requireSupabase().auth.signOut();
   if (error) throw new Error(mapAuthError(error.message));
 }
 
 export async function resolveSessionUser(): Promise<AuthUser | null> {
-  const { data, error } = await withTimeout(supabase.auth.getSession(), 'ตรวจสอบเซสชัน');
+  const { data, error } = await withTimeout(requireSupabase().auth.getSession(), 'ตรวจสอบเซสชัน');
   if (error) throw new Error(mapAuthError(error.message));
 
   const session = data.session;

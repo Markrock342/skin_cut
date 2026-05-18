@@ -9,6 +9,7 @@ import {
   Users,
 } from 'lucide-react';
 import { AnimatedCounter } from '../components/AnimatedCounter';
+import { HomeDevicesPreview, HomeStudioPreview } from '../components/home/HomeBentoPreviews';
 import { PageBadge } from '../components/Layout';
 import { STATS } from '../data/catalog';
 import { fadeUp, staggerContainer, springSnappy } from '../lib/motion';
@@ -130,7 +131,7 @@ export function HomePage() {
                 แถบสกินที่เลือกรองรับ drag-and-drop พร้อม spring animation — ความรู้สึกใกล้ Flutter 120fps
               </p>
             </motion.div>
-            <div className="preview-mock" aria-hidden />
+            <HomeStudioPreview />
           </motion.article>
 
           <motion.article className="bento-card wide" variants={fadeUp}>
@@ -138,13 +139,7 @@ export function HomePage() {
               <h3>ใช้ได้ทุกที่</h3>
               <p style={{ marginTop: 8 }}>Responsive บนมือถือและจอใหญ่ ไม่ต้องติดตั้งแอป</p>
             </motion.div>
-            <div style={{ display: 'grid', placeItems: 'center', minHeight: 140 }}>
-              <motion.div
-                className="globe-mock"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 24, repeat: Infinity, ease: 'linear' }}
-              />
-            </div>
+            <HomeDevicesPreview />
           </motion.article>
         </motion.div>
       </section>

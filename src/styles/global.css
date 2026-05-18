@@ -461,37 +461,171 @@ select {
   margin-bottom: 8px;
 }
 
-.preview-mock {
-  aspect-ratio: 16/10;
-  border-radius: var(--radius);
-  background: linear-gradient(145deg, #1a2434, #0c1219);
-  border: 1px solid var(--line);
-  position: relative;
-  overflow: hidden;
+/* Home bento — studio strip & responsive device mocks */
+.home-bento-preview {
+  min-height: 160px;
 }
 
-.preview-mock::before {
-  content: '';
+.home-bento-preview--studio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-studio-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px dashed rgba(103, 232, 249, 0.28);
+}
+
+.home-mini-skin {
+  position: relative;
+  flex: 0 0 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.home-mini-skin--lift {
+  z-index: 2;
+  border-color: var(--accent);
+  box-shadow: 0 14px 32px rgba(103, 232, 249, 0.25);
+}
+
+.home-mini-skin__rank {
   position: absolute;
-  inset: 12px;
-  border-radius: 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(103, 232, 249, 0.08) 0,
-    rgba(103, 232, 249, 0.08) 1px,
-    transparent 1px,
-    transparent 48px
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-text);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.home-mini-skin__art {
+  aspect-ratio: 3/4;
+  background: linear-gradient(
+    160deg,
+    hsl(var(--hue) 70% 38%) 0%,
+    hsl(calc(var(--hue) + 36) 55% 20%) 100%
   );
 }
 
-.globe-mock {
-  width: 120px;
-  height: 120px;
-  margin: auto;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, var(--accent), var(--accent-2));
-  box-shadow: 0 0 60px rgba(103, 232, 249, 0.4);
-  animation: pulseGlow 4s ease-in-out infinite;
+.home-mini-skin__name {
+  display: block;
+  padding: 4px 5px 6px;
+  font-size: 0.58rem;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-mini-skin__grip {
+  position: absolute;
+  right: 4px;
+  bottom: 22px;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.home-preview-caption {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.home-bento-preview--devices {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  min-height: 168px;
+  padding: 8px 4px 4px;
+}
+
+.home-device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-device--phone {
+  flex: 0 0 108px;
+}
+
+.home-device--desktop {
+  flex: 1 1 180px;
+  max-width: 220px;
+}
+
+.home-device__chrome {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.home-device__chrome svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.home-device__screen {
+  padding: 8px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #141c28, #0a0f16);
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.home-device--phone .home-device__screen {
+  border-radius: 18px;
+}
+
+.home-device__screen--wide {
+  padding: 10px;
+}
+
+.home-mini-grid {
+  display: grid;
+  gap: 5px;
+}
+
+.home-mini-grid--phone {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.home-mini-grid--desktop {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.home-mini-grid__cell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  background: linear-gradient(
+    145deg,
+    hsl(var(--hue) 65% 42%) 0%,
+    hsl(calc(var(--hue) + 30) 50% 24%) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @keyframes pulseGlow {
@@ -3435,6 +3569,17 @@ select {
   color: var(--muted);
 }
 
+.auth-setup-notice {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: var(--text);
+  line-height: 1.55;
+}
+
 .user-chip {
   display: inline-flex;
   align-items: center;
@@ -4455,6 +4600,13 @@ select {
   .bento-card.wide {
     grid-column: span 1;
     grid-template-columns: 1fr;
+  }
+  .home-bento-preview--devices {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .home-device--desktop {
+    max-width: 100%;
   }
   .studio-layout {
     grid-template-columns: 1fr;

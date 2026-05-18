@@ -1,5 +1,5 @@
 import { calcStudioCost, STUDIO_MIN_SKINS } from '../config/studio-pricing';
-import { supabase } from './supabase';
+import { requireSupabase } from './supabase';
 
 export class InsufficientCoinsError extends Error {
   readonly required: number;
@@ -40,7 +40,7 @@ export async function chargeStudioPoster(
 
   const expectedCost = calcStudioCost(skinCount);
 
-  const { data, error } = await supabase.rpc('charge_studio_poster', {
+  const { data, error } = await requireSupabase().rpc('charge_studio_poster', {
     p_title: title,
     p_skin_count: skinCount,
   });

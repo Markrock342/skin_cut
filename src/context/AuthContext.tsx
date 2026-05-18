@@ -9,13 +9,14 @@ import {
   type ReactNode,
 } from 'react';
 import * as authApi from '../lib/auth-api';
-import { supabase } from '../lib/supabase';
+import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import type { RegisterOutcome } from '../lib/auth-types';
 import type { AuthUser } from '../types/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
+  authConfigured: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (
     email: string,
@@ -45,6 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     const {
@@ -116,7 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refresh }),
+    () => ({
+      user,
+      loading,
+      authConfigured: isSupabaseConfigured,
+      login,
+      register,
+      logout,
+      refresh,
+    }),
     [user, loading, login, register, logout, refresh],
   );
 

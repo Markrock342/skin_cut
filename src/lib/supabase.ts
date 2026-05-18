@@ -1,15 +1,29 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL?.trim() ?? '';
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ?? '';
 
-if (!url || !anonKey) {
-  throw new Error(
-    'ตั้งค่า VITE_SUPABASE_URL และ VITE_SUPABASE_ANON_KEY ในไฟล์ .env ก่อนรันแอป',
-  );
+export const isSupabaseConfigured = Boolean(url && anonKey);
+
+export const SUPABASE_SETUP_MESSAGE =
+  'บัญชีและคอยน์ยังไม่พร้อมบนเซิร์ฟเวอร์นี้ — ตั้งค่า VITE_SUPABASE_URL และ VITE_SUPABASE_ANON_KEY แล้ว build ใหม่';
+
+let client: SupabaseClient | null = null;
+
+if (isSupabaseConfigured) {
+  client = createClient(url, anonKey);
 }
 
-export const supabase = createClient(url, anonKey);
+export function getSupabase(): SupabaseClient | null {
+  return client;
+}
+
+export function requireSupabase(): SupabaseClient {
+  if (!client) {
+    throw new Error(SUPABASE_SETUP_MESSAGE);
+  }
+  return client;
+}
 
 export type ProfileRow = {
   id: string;
