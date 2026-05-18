@@ -516,12 +516,23 @@ select {
 }
 
 .home-mini-skin__art {
+  position: relative;
   aspect-ratio: 3/4;
   background: linear-gradient(
     160deg,
     hsl(var(--hue) 70% 38%) 0%,
     hsl(calc(var(--hue) + 36) 55% 20%) 100%
   );
+}
+
+.home-mini-skin__art .home-showcase-img,
+.home-mini-grid__cell .home-showcase-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
 }
 
 .home-mini-skin__name {
@@ -618,7 +629,9 @@ select {
 }
 
 .home-mini-grid__cell {
+  position: relative;
   aspect-ratio: 1;
+  overflow: hidden;
   border-radius: 5px;
   background: linear-gradient(
     145deg,

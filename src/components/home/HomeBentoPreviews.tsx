@@ -1,23 +1,41 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { GripVertical, Monitor, Smartphone } from 'lucide-react';
+import {
+  getHomeShowcaseList,
+  HOME_GRID_SHOWCASE,
+  HOME_STUDIO_SHOWCASE,
+  type ResolvedShowcaseSkin,
+} from '../../data/home-showcase';
+import { resolveSkinImageUrl } from '../../lib/skin-image-url';
 
-const STUDIO_MOCK = [
-  { name: 'Dimension Breaker', hue: 198, rank: 1 },
-  { name: 'Legend', hue: 42, rank: 2 },
-  { name: 'EVO Lv.5', hue: 280, rank: 3 },
-  { name: 'สกินไทย', hue: 165, rank: 4 },
-] as const;
+function MiniSkinArt({ skin, className }: { skin: ResolvedShowcaseSkin; className: string }) {
+  const [failed, setFailed] = useState(false);
+  const src = resolveSkinImageUrl(skin.imageUrl);
 
-const GRID_CELLS = [
-  { hue: 210 },
-  { hue: 32 },
-  { hue: 278 },
-  { hue: 155 },
-  { hue: 12 },
-  { hue: 190 },
-];
+  return (
+    <motion.div
+      className={className}
+      style={{ '--hue': skin.hue } as React.CSSProperties}
+      layout="position"
+    >
+      {src && !failed ? (
+        <img
+          className="home-showcase-img"
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </motion.div>
+  );
+}
 
 export function HomeStudioPreview() {
+  const skins = getHomeShowcaseList(HOME_STUDIO_SHOWCASE);
+
   return (
     <motion.div
       className="home-bento-preview home-bento-preview--studio"
@@ -26,12 +44,11 @@ export function HomeStudioPreview() {
       viewport={{ once: true }}
       transition={{ duration: 0.4 }}
     >
-      <div className="home-studio-strip">
-        {STUDIO_MOCK.map((item, index) => (
+      <motion.div className="home-studio-strip">
+        {skins.map((skin, index) => (
           <motion.div
-            key={item.name}
+            key={skin.id}
             className={`home-mini-skin${index === 1 ? ' home-mini-skin--lift' : ''}`}
-            style={{ '--hue': item.hue } as React.CSSProperties}
             animate={
               index === 1
                 ? { x: [0, 14, 6, 0], y: [0, -6, -2, 0], rotate: [0, -1.5, 0] }
@@ -43,9 +60,9 @@ export function HomeStudioPreview() {
                 : undefined
             }
           >
-            <span className="home-mini-skin__rank">{item.rank}</span>
-            <motion.div className="home-mini-skin__art" layout="position" />
-            <span className="home-mini-skin__name">{item.name}</span>
+            <span className="home-mini-skin__rank">{skin.rank ?? index + 1}</span>
+            <MiniSkinArt skin={skin} className="home-mini-skin__art" />
+            <span className="home-mini-skin__name">{skin.label}</span>
             {index === 1 && (
               <span className="home-mini-skin__grip" aria-hidden>
                 <GripVertical size={14} />
@@ -53,13 +70,45 @@ export function HomeStudioPreview() {
             )}
           </motion.div>
         ))}
-      </div>
+      </motion.div>
       <p className="home-preview-caption">ลากการ์ดเพื่อเรียงอันดับ · spring animation</p>
     </motion.div>
   );
 }
 
+function GridCell({ skin, index }: { skin: ResolvedShowcaseSkin; index: number }) {
+  const [failed, setFailed] = useState(false);
+  const src = resolveSkinImageUrl(skin.imageUrl);
+
+  return (
+    <motion.div
+      className="home-mini-grid__cell"
+      style={{ '--hue': skin.hue } as React.CSSProperties}
+      initial={{ opacity: 0, scale: 0.9 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.05 }}
+      title={skin.label}
+    >
+      {src && !failed ? (
+        <img
+          className="home-showcase-img"
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </motion.div>
+  );
+}
+
 export function HomeDevicesPreview() {
+  const skins = getHomeShowcaseList(HOME_GRID_SHOWCASE);
+  const phoneSkins = skins.slice(0, 4);
+  const desktopSkins = skins;
+
   return (
     <motion.div
       className="home-bento-preview home-bento-preview--devices"
@@ -83,12 +132,8 @@ export function HomeDevicesPreview() {
             animate={{ y: [0, -4, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {GRID_CELLS.slice(0, 4).map((cell, i) => (
-              <div
-                key={i}
-                className="home-mini-grid__cell"
-                style={{ '--hue': cell.hue } as React.CSSProperties}
-              />
+            {phoneSkins.map((skin, i) => (
+              <GridCell key={skin.id} skin={skin} index={i} />
             ))}
           </motion.div>
         </motion.div>
@@ -104,19 +149,11 @@ export function HomeDevicesPreview() {
           <span>จอใหญ่</span>
         </motion.div>
         <div className="home-device__screen home-device__screen--wide">
-          <div className="home-mini-grid home-mini-grid--desktop">
-            {GRID_CELLS.map((cell, i) => (
-              <motion.div
-                key={i}
-                className="home-mini-grid__cell"
-                style={{ '--hue': cell.hue } as React.CSSProperties}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-              />
+          <motion.div className="home-mini-grid home-mini-grid--desktop">
+            {desktopSkins.map((skin, i) => (
+              <GridCell key={skin.id} skin={skin} index={i} />
             ))}
-          </div>
+          </motion.div>
         </div>
       </motion.div>
     </motion.div>

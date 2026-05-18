@@ -109,6 +109,10 @@ export function getSkinsByHero(heroId: string) {
   return skinMap.get(heroId) ?? [];
 }
 
+export function getSkinById(skinId: string) {
+  return skinById.get(skinId);
+}
+
 export function getHero(heroId: string) {
   return [...rovCatalog.heroes, ...mlbbCatalog.heroes].find((h) => h.id === heroId);
 }
