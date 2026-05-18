@@ -57,6 +57,8 @@ npm run fetch:assets -- --game=rov --limit=5
 
 เลือก **Production** (และ Preview ถ้าต้องการ) แล้ว **Redeploy** — Vite ฝังค่าตอน build ไม่ใช่ runtime
 
+รูปสกิน RoV/MLBB ใช้ path `/sortskin-assets/*` — `vercel.json` proxy ไป SortSkin R2 (dev ใช้ proxy ใน `vite.config.ts`)
+
 รัน migration: `npm run db:migrate` หรือวาง SQL ใน `supabase/migrations/` บน Supabase SQL Editor
 
 ## Stack
