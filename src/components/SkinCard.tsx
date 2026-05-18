@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Skin } from '../data/types';
-import { tierLabel } from '../data/catalog';
 import { springSnappy } from '../lib/motion';
+import { resolveSkinImageUrl } from '../lib/skin-image-url';
 
 interface SkinCardProps {
   skin: Skin;
@@ -29,7 +29,8 @@ export function SkinCard({
   layoutId,
 }: SkinCardProps) {
   const [imgFailed, setImgFailed] = useState(false);
-  const showImage = skin.imageUrl && !imgFailed;
+  const imageSrc = resolveSkinImageUrl(skin.imageUrl);
+  const showImage = imageSrc && !imgFailed;
 
   return (
     <motion.article
@@ -67,14 +68,13 @@ export function SkinCard({
         {showImage ? (
           <img
             className="skin-card-img"
-            src={skin.imageUrl}
+            src={imageSrc}
             alt=""
             loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}
           />
         ) : null}
-        <span className={`skin-tier-badge ${skin.tier}`}>{tierLabel(skin.tier)}</span>
         {rank != null && <span className="skin-rank">{rank}</span>}
       </motion.div>
       <p className="skin-card-name">{skin.name}</p>

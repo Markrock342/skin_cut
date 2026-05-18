@@ -1,19 +1,34 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Download, ImageIcon, Layers } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  Download,
+  ExternalLink,
+  ImageIcon,
+  Layers,
+  Scissors,
+  Upload,
+} from 'lucide-react';
 import { ARENA_TEMPLATES } from '../data/arena-breakout/templates';
+import { BG_REMOVAL_TOOLS } from '../data/arena-breakout/external-tools';
 import type { BreakoutEditorState, BreakoutItemCategory } from '../data/types';
 import { BreakoutTemplateCanvas } from '../components/BreakoutTemplateCanvas';
+import { BreakoutGuide } from '../components/BreakoutGuide';
+import { BreakoutPrepareStep } from '../components/BreakoutPrepareStep';
+import { ImageCropModal } from '../components/ImageCropModal';
 import {
   ARENA_CATEGORY_LABELS,
   ARENA_ITEMS_BY_CATEGORY,
   getArenaItemsByCategory,
 } from '../lib/arena-items';
+import { readFileAsDataUrl } from '../lib/crop-image';
 import { exportNodeToPng } from '../lib/export-image';
 import { springSnappy } from '../lib/motion';
 
-/** ลำดับแท็บคลัง — โปรไฟล์/ตัวละครอยู่บน */
+type FlowStep = 'guide' | 'prepare' | 'pick' | 'edit';
+
 const ARENA_TAB_ORDER: BreakoutItemCategory[] = [
   'bgProfile',
   'bgCharacter',
@@ -33,15 +48,40 @@ const DEFAULT_STATE: BreakoutEditorState = {
   slots: {},
 };
 
+const FLOW_LABELS: Record<FlowStep, string> = {
+  guide: 'คู่มือ',
+  prepare: 'เตรียมรูป',
+  pick: 'เทมเพลต',
+  edit: 'จัดภาพ',
+};
+
+function withHeroSlots(
+  slots: Record<string, string>,
+  profile?: string,
+  character?: string,
+): Record<string, string> {
+  const next = { ...slots };
+  if (profile) next.profile = profile;
+  if (character) next.character = character;
+  return next;
+}
+
 export function BreakoutPosterPage() {
   const posterRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<'pick' | 'edit'>('pick');
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const characterInputRef = useRef<HTMLInputElement>(null);
+
+  const [flow, setFlow] = useState<FlowStep>('guide');
   const [state, setState] = useState<BreakoutEditorState>(DEFAULT_STATE);
+  const [profileImage, setProfileImage] = useState<string | undefined>();
+  const [characterImage, setCharacterImage] = useState<string | undefined>();
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('bgProfile');
   const [showSlotFrames, setShowSlotFrames] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<'profile' | 'inline'>('profile');
 
   const template = useMemo(
     () => ARENA_TEMPLATES.find((t) => t.id === state.templateFamily)!,
@@ -50,8 +90,34 @@ export function BreakoutPosterPage() {
 
   const activeSlotDef = template.slots.find((s) => s.id === activeSlot);
 
+  const editorState = useMemo(
+    () => ({
+      ...state,
+      slots: withHeroSlots(state.slots, profileImage, characterImage),
+    }),
+    [state, profileImage, characterImage],
+  );
+
+  const applyPreparedToSlots = useCallback(() => {
+    setState((s) => ({
+      ...s,
+      slots: withHeroSlots(s.slots, profileImage, characterImage),
+    }));
+  }, [profileImage, characterImage]);
+
+  const goToEdit = () => {
+    applyPreparedToSlots();
+    setFlow('edit');
+  };
+
   const assignItem = (itemId: string) => {
     if (!activeSlot) return;
+    if (activeSlot === 'profile') {
+      setProfileImage(undefined);
+    }
+    if (activeSlot === 'character') {
+      setCharacterImage(undefined);
+    }
     setState((s) => ({
       ...s,
       slots: { ...s.slots, [activeSlot]: itemId },
@@ -80,16 +146,43 @@ export function BreakoutPosterPage() {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeSlot) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = reader.result as string;
-      setState((s) => ({
-        ...s,
-        slots: { ...s.slots, [activeSlot]: url },
-      }));
-    };
-    reader.readAsDataURL(file);
+
+    if (activeSlot === 'profile') {
+      void readFileAsDataUrl(file).then((url) => {
+        setCropTarget('inline');
+        setCropSrc(url);
+      });
+    } else if (activeSlot === 'character') {
+      void readFileAsDataUrl(file).then((url) => {
+        setCharacterImage(url);
+        setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const url = reader.result as string;
+        setState((s) => ({
+          ...s,
+          slots: { ...s.slots, [activeSlot]: url },
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
     e.target.value = '';
+  };
+
+  const handleCropConfirm = (dataUrl: string) => {
+    if (cropTarget === 'profile' || activeSlot === 'profile') {
+      setProfileImage(dataUrl);
+      setState((s) => ({ ...s, slots: { ...s.slots, profile: dataUrl } }));
+    }
+    setCropSrc(null);
+  };
+
+  const openProfileCrop = async (file: File) => {
+    const url = await readFileAsDataUrl(file);
+    setCropTarget('profile');
+    setCropSrc(url);
   };
 
   const canUploadSlot =
@@ -108,16 +201,107 @@ export function BreakoutPosterPage() {
     }
   };
 
-  if (step === 'pick') {
+  const flowNav = (
+    <nav className="ab-flow-nav" aria-label="ขั้นตอน">
+      {(Object.keys(FLOW_LABELS) as FlowStep[]).map((key) => (
+        <button
+          key={key}
+          type="button"
+          className={flow === key ? 'active' : ''}
+          disabled={
+            (key === 'edit' && flow !== 'edit') ||
+            (key === 'pick' && flow === 'guide') ||
+            (key === 'prepare' && flow === 'guide')
+          }
+          onClick={() => {
+            if (key === 'guide') setFlow('guide');
+            if (key === 'prepare' && flow !== 'guide') setFlow('prepare');
+            if (key === 'pick' && (flow === 'pick' || flow === 'edit')) setFlow('pick');
+            if (key === 'edit' && flow === 'edit') setFlow('edit');
+          }}
+        >
+          {FLOW_LABELS[key]}
+        </button>
+      ))}
+    </nav>
+  );
+
+  const backLink = (
+    <Link to="/games" className="back-link">
+      <ArrowLeft size={16} />
+      ย้อนกลับ
+    </Link>
+  );
+
+  if (flow === 'guide') {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <Link to="/games" className="back-link">
-          <ArrowLeft size={16} />
-          ย้อนกลับ
-        </Link>
+        {backLink}
+        {flowNav}
+        <BreakoutGuide onStart={() => setFlow('prepare')} />
+      </motion.div>
+    );
+  }
+
+  if (flow === 'prepare') {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        {backLink}
+        {flowNav}
+        <BreakoutPrepareStep
+          profileImage={profileImage}
+          characterImage={characterImage}
+          onProfileChange={(url) => {
+            setProfileImage(url);
+            if (url) {
+              setState((s) => ({ ...s, slots: { ...s.slots, profile: url } }));
+            } else {
+              setState((s) => {
+                const rest = { ...s.slots };
+                delete rest.profile;
+                return { ...s, slots: rest };
+              });
+            }
+          }}
+          onCharacterChange={(url) => {
+            setCharacterImage(url);
+            if (url) {
+              setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
+            } else {
+              setState((s) => {
+                const rest = { ...s.slots };
+                delete rest.character;
+                return { ...s, slots: rest };
+              });
+            }
+          }}
+          onContinue={() => {
+            applyPreparedToSlots();
+            setFlow('pick');
+          }}
+          onSkip={() => {
+            setProfileImage(undefined);
+            setCharacterImage(undefined);
+            setFlow('pick');
+          }}
+        />
+      </motion.div>
+    );
+  }
+
+  if (flow === 'pick') {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        {backLink}
+        {flowNav}
         <div className="page-title-block">
           <h1>Arena Breakout — เลือกเทมเพลต</h1>
           <p>3 แบบหลัก · แต่ละแบบมี 6 สไตล์ย่อย (รวม 18 แบบ)</p>
+          {(profileImage || characterImage) && (
+            <p className="ab-prepared-hint">
+              รูปจากเกมพร้อมแล้ว — จะใส่ช่องโปรไฟล์/ตัวละครอัตโนมัติ
+            </p>
+          )}
         </div>
 
         <motion.div className="ab-template-families" layout>
@@ -140,7 +324,7 @@ export function BreakoutPosterPage() {
           <Layers size={18} />
           เลือกสไตล์ย่อย — {template.name}
         </h3>
-        <div className="ab-variant-grid">
+        <motion.div className="ab-variant-grid">
           {template.variants.map((v) => (
             <button
               key={v.id}
@@ -152,16 +336,20 @@ export function BreakoutPosterPage() {
               <span>แบบ {v.id}</span>
             </button>
           ))}
-        </div>
+        </motion.div>
 
-        <motion.button
-          type="button"
-          className="btn-primary"
-          style={{ marginTop: 32 }}
-          onClick={() => setStep('edit')}
-        >
-          เริ่มจัดไอเทม
-        </motion.button>
+        <div className="ab-pick-actions">
+          <button type="button" className="btn-ghost" onClick={() => setFlow('prepare')}>
+            แก้รูปจากเกม
+          </button>
+          <motion.button
+            type="button"
+            className="btn-primary"
+            onClick={goToEdit}
+          >
+            เริ่มจัดไอเทม
+          </motion.button>
+        </div>
       </motion.div>
     );
   }
@@ -175,13 +363,46 @@ export function BreakoutPosterPage() {
         hidden
         onChange={handleFile}
       />
+      <input
+        ref={profileInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void openProfileCrop(f);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={characterInputRef}
+        type="file"
+        accept="image/png,image/webp"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) {
+            void readFileAsDataUrl(f).then((url) => {
+              setCharacterImage(url);
+              setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
+            });
+          }
+          e.target.value = '';
+        }}
+      />
+
+      {flowNav}
 
       <div className="breakout-toolbar">
         <Link to="/games" className="back-link">
           <ArrowLeft size={16} />
           เกม
         </Link>
-        <button type="button" className="btn-ghost" onClick={() => setStep('pick')}>
+        <button type="button" className="btn-ghost" onClick={() => setFlow('guide')}>
+          <BookOpen size={16} />
+          คู่มือ
+        </button>
+        <button type="button" className="btn-ghost" onClick={() => setFlow('pick')}>
           เปลี่ยนเทมเพลต
         </button>
         <span className="ab-toolbar-meta">
@@ -209,6 +430,76 @@ export function BreakoutPosterPage() {
 
       <div className="breakout-editor-layout">
         <aside className="panel ab-item-library">
+          <section className="ab-from-game">
+            <h3>
+              <Upload size={18} />
+              รูปจากเกม
+            </h3>
+            <div className="ab-from-game-row">
+              <div className="ab-from-game-item">
+                <span>โปรไฟล์ / สถิติ</span>
+                {profileImage ? (
+                  <div className="ab-from-game-thumb">
+                    <img src={profileImage} alt="" />
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => profileInputRef.current?.click()}
+                    >
+                      <Scissors size={14} />
+                      ตัดใหม่
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-ghost ab-from-game-upload"
+                    onClick={() => profileInputRef.current?.click()}
+                  >
+                    อัปสกรีนช็อต
+                  </button>
+                )}
+              </div>
+              <div className="ab-from-game-item">
+                <span>ตัวละคร PNG</span>
+                {characterImage ? (
+                  <div className="ab-from-game-thumb ab-from-game-thumb--char">
+                    <img src={characterImage} alt="" />
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      onClick={() => characterInputRef.current?.click()}
+                    >
+                      เปลี่ยน
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-ghost ab-from-game-upload"
+                    onClick={() => characterInputRef.current?.click()}
+                  >
+                    อัป PNG
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="ab-from-game-links">
+              {BG_REMOVAL_TOOLS.map((tool) => (
+                <a
+                  key={tool.id}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ab-prepare-tool-link ab-prepare-tool-link--compact"
+                >
+                  <ExternalLink size={12} />
+                  {tool.name}
+                </a>
+              ))}
+            </div>
+          </section>
+
           <div className="ab-text-fields">
             <h3>เงิน / ราคา</h3>
             <label className="field">
@@ -229,10 +520,6 @@ export function BreakoutPosterPage() {
                 placeholder="เช่น 1,690 ฿"
               />
             </label>
-            <p className="ab-studio-tip">
-              เทมเพลต = พื้นหลัง · คลิกช่องแล้วเลือกรูป · โปรไฟล์/ตัวละครจากคลัง
-              พื้นหลังโปรไฟล์ / พื้นหลังตัวละคร
-            </p>
           </div>
 
           <h3>
@@ -275,9 +562,13 @@ export function BreakoutPosterPage() {
             <button
               type="button"
               className="btn-ghost ab-upload-fallback"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => {
+                if (activeSlot === 'profile') profileInputRef.current?.click();
+                else if (activeSlot === 'character') characterInputRef.current?.click();
+                else fileRef.current?.click();
+              }}
             >
-              อัปโหลด PNG เอง (ถ้าไม่มีในคลัง)
+              อัปโหลดจากเครื่อง
             </button>
           )}
         </aside>
@@ -290,7 +581,7 @@ export function BreakoutPosterPage() {
         >
           <BreakoutTemplateCanvas
             ref={posterRef}
-            state={state}
+            state={editorState}
             activeSlotId={activeSlot}
             onSlotClick={handleSlotClick}
             onTextChange={(slotId, value) =>
@@ -313,6 +604,18 @@ export function BreakoutPosterPage() {
           >
             กำลังแก้: <strong>{activeSlotDef.label}</strong> — เลือกจากคลังซ้าย
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {cropSrc && (
+          <ImageCropModal
+            imageSrc={cropSrc}
+            title="ตัดกล่องสถิติ"
+            hint="ลากมุมกรอบให้ครอบกล่องสถิติ แล้วกดใช้รูปนี้"
+            onConfirm={handleCropConfirm}
+            onClose={() => setCropSrc(null)}
+          />
         )}
       </AnimatePresence>
     </motion.div>

@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Coins } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { COIN_PACKAGES, PAYMENT_METHODS } from '../data/catalog';
 import { fadeUp, springSnappy } from '../lib/motion';
 
 export function TopupPage() {
+  const { user } = useAuth();
   const [pkgId, setPkgId] = useState<string | null>(null);
   const [payId, setPayId] = useState<string | null>(null);
 
@@ -14,7 +17,9 @@ export function TopupPage() {
     <div style={{ paddingBottom: 88 }}>
       <motion.div className="page-title-block" variants={fadeUp} initial="hidden" animate="show">
         <h1>เติมคอยน์</h1>
-        <p>เลือกจำนวนและวิธีชำระเงิน</p>
+        <p>
+          ยอดคงเหลือ {user?.coins ?? 0} คอยน์ — เลือกจำนวนและวิธีชำระเงิน
+        </p>
       </motion.div>
 
       <motion.div
@@ -81,7 +86,11 @@ export function TopupPage() {
 
           <div className="alert-box">
             <AlertTriangle size={18} style={{ flexShrink: 0 }} />
-            <span>การเติมคอยน์ไม่สามารถขอคืนเงินได้หลังชำระสำเร็จ (เดโม)</span>
+            <span>
+              คอยน์ที่ซื้อแล้ว<strong> ไม่สามารถขอคืนเงิน</strong>ได้หลังชำระสำเร็จ
+              (ยกเว้นกรณีระบบผิดพลาด) — ดู{' '}
+              <Link to="/terms#coins">ข้อกำหนด §5 คอยน์</Link>
+            </span>
           </div>
         </motion.div>
       </motion.div>

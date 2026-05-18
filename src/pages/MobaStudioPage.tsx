@@ -1,36 +1,116 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Check,
   Eye,
+  Layers,
+  ListOrdered,
+  Plus,
   Sparkles,
   Scan,
   X,
-  Wand2,
   Upload,
+  UserPlus,
 } from 'lucide-react';
-import { getGame, getHeroesByGame, getSkinsByHero } from '../data/catalog';
+import { loadShopName, saveShopName } from '../config/shop-brand';
+import { countUniqueHeroes } from '../lib/poster-groups';
+import { POSTER_TEMPLATE_OPTIONS } from '../lib/poster-labels';
+import {
+  getCollectionsByGame,
+  getGame,
+  getHeroesByGame,
+  getSkinsByCollection,
+  getSkinsByHero,
+} from '../data/catalog';
+import { GAMES } from '../data/games';
+import type { Skin } from '../data/types';
 import { useStudio } from '../context/StudioContext';
 import { SortableSelectedStrip } from '../components/SortableSelectedStrip';
 import { SkinCard } from '../components/SkinCard';
+import { ModalPortal } from '../components/ModalPortal';
+import { DetectSkinGridIllustration } from '../components/DetectSkinGridIllustration';
+import { SkinPosterPreviewModal } from '../components/SkinPosterPreviewModal';
+import type { SkinPosterTemplate } from '../components/SkinPosterPreview';
+import {
+  getGridFormatOptionsForCount,
+  gridFormatOverflowMessage,
+  isGridFormatValidForCount,
+  suggestGridFormat,
+} from '../lib/grid-formats';
 import { springSnappy } from '../lib/motion';
-import { detectSkinsFromImage, type DetectedSkinCandidate } from '../lib/detect-skins';
+import type { DetectedSkinCandidate } from '../lib/detect-skins';
+import { resolveCandidateToSkin } from '../lib/catalog-skin-match';
+import { detectSkinsFromFiles } from '../lib/detect-skins-from-files';
+import { useAuth } from '../context/AuthContext';
+import {
+  calcStudioCost,
+  formatStudioCostForSkins,
+  STUDIO_PRICING_HINT,
+} from '../config/studio-pricing';
+import { exportNodeToPng } from '../lib/export-image';
+import {
+  chargeStudioPoster,
+  InsufficientCoinsError,
+  StudioAuthRequiredError,
+} from '../lib/studio-api';
+import { compareSkinsByRarity } from '../lib/skin-rarity';
+
+type DetectRowState = 'ready' | 'added' | 'in-list' | 'unmatched';
+
+interface DetectRow {
+  key: string;
+  candidate: DetectedSkinCandidate;
+  skin: Skin | null;
+  state: DetectRowState;
+}
+
+function buildDetectRows(
+  candidates: DetectedSkinCandidate[],
+  gameId: 'rov' | 'mlbb',
+  isSelected: (id: string) => boolean,
+): DetectRow[] {
+  return candidates.map((candidate, i) => {
+    const skin = resolveCandidateToSkin(candidate, gameId);
+    let state: DetectRowState = 'unmatched';
+    if (skin) {
+      state = isSelected(skin.id) ? 'in-list' : 'ready';
+    }
+    return {
+      key: candidate.slotKey ? `slot-${candidate.slotKey}` : `${candidate.skinId}-${i}`,
+      candidate,
+      skin: skin ?? null,
+      state,
+    };
+  });
+}
+
+const MOBA_GAMES = GAMES.filter((g) => g.id === 'rov' || g.id === 'mlbb');
 
 export function MobaStudioPage() {
+  const navigate = useNavigate();
+  const { user, refresh } = useAuth();
   const { gameId } = useParams<{ gameId: string }>();
   const gid = gameId === 'mlbb' ? 'mlbb' : 'rov';
   const game = getGame(gid);
   const heroes = useMemo(() => getHeroesByGame(gid), [gid]);
+  const collections = useMemo(() => getCollectionsByGame(gid), [gid]);
   const [heroId, setHeroId] = useState('');
+  const [collectionId, setCollectionId] = useState('');
   const [filterMode, setFilterMode] = useState<'hero' | 'tier'>('hero');
   const [search, setSearch] = useState('');
   const [statusText, setStatusText] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [exportingPoster, setExportingPoster] = useState(false);
   const [showDetectModal, setShowDetectModal] = useState(false);
   const [detecting, setDetecting] = useState(false);
-  const [candidates, setCandidates] = useState<DetectedSkinCandidate[]>([]);
+  const [detectProgress, setDetectProgress] = useState<number | null>(null);
+  const [detectRows, setDetectRows] = useState<DetectRow[]>([]);
+  const [detectMessage, setDetectMessage] = useState<string | null>(null);
+  const [posterTemplate, setPosterTemplate] = useState<SkinPosterTemplate>('dark-grid');
+  const [groupByHero, setGroupByHero] = useState(true);
+  const [showWatermark, setShowWatermark] = useState(true);
+  const [shopName, setShopName] = useState(() => loadShopName());
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -38,6 +118,17 @@ export function MobaStudioPage() {
       setHeroId(heroes[0].id);
     }
   }, [heroes, heroId]);
+
+  useEffect(() => {
+    if (collections.length && !collections.some((c) => c.id === collectionId)) {
+      setCollectionId(collections[0].id);
+    }
+  }, [collections, collectionId]);
+
+  useEffect(() => {
+    setSearch('');
+    setFilterMode('hero');
+  }, [gid]);
 
   const {
     selectedSkins,
@@ -52,72 +143,264 @@ export function MobaStudioPage() {
     isSelected,
   } = useStudio();
 
+  const studioCost = calcStudioCost(selectedSkins.length);
+  const studioCostLabel = formatStudioCostForSkins(selectedSkins.length);
+
+  const uniqueHeroCount = useMemo(() => countUniqueHeroes(selectedSkins), [selectedSkins]);
+
   const skins = useMemo(() => getSkinsByHero(heroId), [heroId]);
+  const collectionSkins = useMemo(
+    () => getSkinsByCollection(gid, collectionId),
+    [gid, collectionId],
+  );
   const activeHero = heroes.find((h) => h.id === heroId);
+  const activeCollection = collections.find((c) => c.id === collectionId);
   const filteredHeroes = heroes.filter((h) => h.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredCollections = collections.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
+  );
+  const displaySkins = filterMode === 'tier' ? collectionSkins : skins;
+  const tierModeReady = collections.length > 0;
   const minGrid = 72 + viewSize * 14;
   const needsMore = selectedSkins.length < 4;
+  const atMaxSelected = selectedSkins.length >= 48;
   const selectedHeroCount = selectedSkins.filter((skin) => skin.heroId === heroId).length;
+  const gridFormatOptions = useMemo(
+    () => getGridFormatOptionsForCount(selectedSkins.length),
+    [selectedSkins.length],
+  );
+  const gridOverflowMsg = useMemo(
+    () => gridFormatOverflowMessage(selectedSkins.length, gridFormat),
+    [selectedSkins.length, gridFormat],
+  );
+  const gridFormatInvalid = Boolean(gridOverflowMsg);
+
+  useEffect(() => {
+    const n = selectedSkins.length;
+    if (n === 0) return;
+    const validValues = getGridFormatOptionsForCount(n).map((o) => o.value);
+    if (!validValues.includes(gridFormat) || !isGridFormatValidForCount(n, gridFormat)) {
+      setGridFormat(suggestGridFormat(n));
+    }
+  }, [selectedSkins.length, gridFormat, setGridFormat]);
+
+  const handleShopNameChange = (value: string) => {
+    setShopName(value);
+    saveShopName(value);
+  };
 
   const handleSortByTier = () => {
-    const tierOrder = ['ultimate', 'mythic', 'epic', 'elite', 'limited', 'normal'] as const;
-    const rank = new Map(tierOrder.map((tier, index) => [tier, index]));
-    sortSkins((a, b) => {
-      const tierDiff = (rank.get(a.tier) ?? 99) - (rank.get(b.tier) ?? 99);
-      return tierDiff !== 0 ? tierDiff : a.name.localeCompare(b.name);
+    sortSkins(compareSkinsByRarity);
+    setStatusText(`เรียงตามความแรร์ (${game.shortName}) แล้ว`);
+  };
+
+  const handleSelectAllVisible = () => {
+    let added = 0;
+    displaySkins.forEach((skin) => {
+      if (!isSelected(skin.id)) {
+        addSkin(skin);
+        added += 1;
+      }
     });
-    setStatusText('เรียงสกินตามระดับแล้ว');
+    if (atMaxSelected && added === 0) {
+      setStatusText('เลือกครบ 48 สกินแล้ว — ลบบางชิ้นก่อนเพิ่ม');
+    } else {
+      const label =
+        filterMode === 'tier'
+          ? (activeCollection?.name ?? 'ระดับสกิน')
+          : (activeHero?.name ?? 'ฮีโร่');
+      setStatusText(added > 0 ? `เพิ่มสกิน ${label} ${added} ชิ้น` : `เลือกสกิน ${label} ครบแล้ว`);
+    }
+  };
+
+  const handleGameChange = (next: string) => {
+    if (next === gid) return;
+    navigate(`/studio/${next}`);
+  };
+
+  const openPreviewModal = () => {
+    if (selectedSkins.length === 0) {
+      setStatusText('ยังไม่มีสกินที่เลือก');
+      return false;
+    }
+    if (needsMore) {
+      setStatusText('เลือกอย่างน้อย 4 สกินเพื่อดูตัวอย่าง');
+      return false;
+    }
+    if (gridFormatInvalid) {
+      setStatusText(gridOverflowMsg ?? 'ขนาดตารางไม่พอสำหรับจำนวนสกิน');
+      return false;
+    }
+    if (!isGridFormatValidForCount(selectedSkins.length, gridFormat)) {
+      setGridFormat(suggestGridFormat(selectedSkins.length));
+    }
+    setShowPreviewModal(true);
+    return true;
+  };
+
+  const handleCreateFromModal = async (posterEl: HTMLDivElement) => {
+    if (!user) {
+      navigate('/login', { state: { from: `/studio/${gid}` } });
+      return;
+    }
+    if (user.coins < studioCost) {
+      setStatusText(`คอยน์ไม่พอ — ต้องการ ${studioCostLabel} คอยน์`);
+      navigate('/topup');
+      return;
+    }
+
+    setExportingPoster(true);
+    setStatusText('กำลังสร้าง PNG...');
+    try {
+      const title = `โปสเตอร์ ${game.shortName} · ${selectedSkins.length} สกิน · ${gridFormat.replace('x', '×')}`;
+      await chargeStudioPoster(title, selectedSkins.length);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await exportNodeToPng(posterEl, `${gid}-skin-poster-${Date.now()}.png`);
+      await refresh();
+      setStatusText(`สร้างและดาวน์โหลดแล้ว (−${studioCostLabel} คอยน์)`);
+      setShowPreviewModal(false);
+    } catch (err) {
+      if (err instanceof StudioAuthRequiredError) {
+        navigate('/login', { state: { from: `/studio/${gid}` } });
+        return;
+      }
+      if (err instanceof InsufficientCoinsError) {
+        setStatusText(`คอยน์ไม่พอ — ต้องการ ${studioCostLabel} คอยน์`);
+        navigate('/topup');
+        return;
+      }
+      setStatusText('สร้าง PNG ไม่สำเร็จ — ลองอีกครั้ง');
+    } finally {
+      setExportingPoster(false);
+    }
+  };
+
+  const handleExportPng = () => {
+    openPreviewModal();
   };
 
   const handlePreview = () => {
-    setShowPreview(true);
-    setStatusText(selectedSkins.length > 0 ? `กำลังแสดงตัวอย่าง ${selectedSkins.length} สกินในรูปแบบ ${gridFormat}` : 'ยังไม่มีสกินที่เลือก');
+    if (openPreviewModal()) {
+      setStatusText(`ตัวอย่าง ${selectedSkins.length} สกิน · ${gridFormat.replace('x', ' × ')}`);
+    }
   };
 
-  const handleDetectFile = async (file?: File) => {
-    if (!file) return;
+  const refreshDetectRowStates = (rows: DetectRow[]): DetectRow[] =>
+    rows.map((row): DetectRow => {
+      if (!row.skin) return row;
+      if (isSelected(row.skin.id)) {
+        return { ...row, state: row.state === 'added' ? 'added' : 'in-list' };
+      }
+      if (row.state === 'added' || row.state === 'in-list') {
+        return { ...row, state: 'ready' };
+      }
+      return row;
+    });
+
+  useEffect(() => {
+    if (!showDetectModal || detectRows.length === 0) return;
+    setDetectRows((rows) => refreshDetectRowStates(rows));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync in-list/ready เมื่อแก้รายการเลือกนอก modal
+  }, [selectedSkins, showDetectModal]);
+
+  const addDetectRow = (key: string) => {
+    if (selectedSkins.length >= 48) {
+      setStatusText('เลือกครบ 48 สกินแล้ว — ลบบางชิ้นก่อนเพิ่ม');
+      return;
+    }
+    setDetectRows((rows) =>
+      refreshDetectRowStates(
+        rows.map((row) => {
+          if (row.key !== key || !row.skin || row.state !== 'ready') return row;
+          if (!isSelected(row.skin.id)) addSkin(row.skin);
+          return { ...row, state: 'added' as const };
+        }),
+      ),
+    );
+  };
+
+  const removeDetectRow = (key: string) => {
+    setDetectRows((rows) => {
+      const row = rows.find((r) => r.key === key);
+      if (row?.skin && (row.state === 'added' || row.state === 'in-list') && isSelected(row.skin.id)) {
+        removeSkin(row.skin.id);
+      }
+      return rows.filter((r) => r.key !== key);
+    });
+  };
+
+  const addAllDetectReady = () => {
+    const slotsLeft = Math.max(0, 48 - selectedSkins.length);
+    if (slotsLeft === 0) {
+      setStatusText('เลือกครบ 48 สกินแล้ว — ลบบางชิ้นก่อนเพิ่ม');
+      return;
+    }
+    let added = 0;
+    setDetectRows((rows) =>
+      refreshDetectRowStates(
+        rows.map((row) => {
+          if (row.state !== 'ready' || !row.skin || added >= slotsLeft) return row;
+          if (!isSelected(row.skin.id)) {
+            addSkin(row.skin);
+            added += 1;
+            return { ...row, state: 'added' as const };
+          }
+          return row;
+        }),
+      ),
+    );
+    setStatusText(
+      added > 0 ? `เพิ่มสกินที่ตรงคลัง ${added} ชิ้น` : 'ไม่มีสกินที่พร้อมเพิ่ม',
+    );
+  };
+
+  const readyDetectCount = detectRows.filter((r) => r.state === 'ready').length;
+
+  const handleDetectFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
     setDetecting(true);
-    setStatusText('กำลังตรวจจับสกินจากรูป...');
+    setDetectProgress(0);
+    setDetectRows([]);
+    setDetectMessage(null);
+    setStatusText('กำลังอ่านข้อความจากรูป...');
+
     try {
-      const result = await detectSkinsFromImage(file);
-      setCandidates(result.candidates);
-      setStatusText(result.candidates.length ? `พบผู้เข้าชิง ${result.candidates.length} รายการ` : 'ไม่พบสกินที่ตรงกัน');
+      const { candidates } = await detectSkinsFromFiles(
+        Array.from(files),
+        gid,
+        (pct) => setDetectProgress(pct),
+      );
+
+      const rows = buildDetectRows(candidates, gid, isSelected);
+      setDetectRows(rows);
+
+      if (rows.length === 0) {
+        setDetectMessage(
+          'ไม่พบชื่อสกินในภาพ — ลองสกรีนช็อตโปรไฟล์ ROV (กริดด้านล่าง) หรือแคปเฉพาะกริดสกิน',
+        );
+        setStatusText('ไม่พบสกินในภาพ');
+      } else {
+        const matched = rows.filter((r) => r.skin).length;
+        setDetectMessage(
+          `พบ ${rows.length} ช่องจากรูป · ตรงคลัง ${matched} รายการ — ลบรายการผิด (X) แล้วกด「เพิ่มทั้งหมด」`,
+        );
+        setStatusText(`พร้อมเพิ่ม ${matched} สกิน — ตรวจรายการก่อนกดเพิ่ม`);
+      }
     } catch {
-      setStatusText('เชื่อม API ตรวจจับไม่ได้ในตอนนี้ — ใช้ผลลัพธ์ mock แทน');
-      setCandidates([
-        {
-          skinId: 'mock-1',
-          name: 'Airi - Spirit Flame',
-          heroName: 'Airi',
-          confidence: 0.94,
-          tier: 'epic',
-        },
-        {
-          skinId: 'mock-2',
-          name: 'Violet - Neon Heart',
-          heroName: 'Violet',
-          confidence: 0.88,
-          tier: 'mythic',
-        },
-      ]);
+      setDetectMessage('ตรวจจับไม่สำเร็จ — ลองใหม่หรือเลือกสกินมือ');
+      setStatusText('ตรวจจับไม่สำเร็จ');
     } finally {
       setDetecting(false);
-      setShowDetectModal(false);
+      setDetectProgress(null);
       if (fileRef.current) fileRef.current.value = '';
     }
   };
 
-  const handleImportCandidates = () => {
-    const heroSkinMap = new Map<string, ReturnType<typeof getSkinsByHero>>();
-    candidates.forEach((candidate) => {
-      if (candidate.skinId.startsWith('mock-')) return;
-      const hero = heroes.find((h) => h.name === candidate.heroName);
-      if (!hero) return;
-      if (!heroSkinMap.has(hero.id)) heroSkinMap.set(hero.id, getSkinsByHero(hero.id));
-      const skin = heroSkinMap.get(hero.id)?.find((item) => item.id === candidate.skinId);
-      if (skin && !isSelected(skin.id)) addSkin(skin);
-    });
-    setStatusText('นำเข้าผลตรวจจับเข้าสกินที่เลือกแล้ว');
+  const closeDetectModal = () => {
+    if (detecting) return;
+    setShowDetectModal(false);
+    setDetectRows([]);
+    setDetectMessage(null);
   };
 
   return (
@@ -129,51 +412,106 @@ export function MobaStudioPage() {
 
       <div className="studio-layout">
         <aside className="studio-sidebar">
-          <select value={gid} aria-label="เลือกเกม" disabled>
-            <option value={gid}>{game.shortName}</option>
+          <label className="studio-sidebar-label" htmlFor="studio-game-select">
+            เลือกเกม
+          </label>
+          <select
+            id="studio-game-select"
+            className="studio-game-select"
+            value={gid}
+            aria-label="เลือกเกม"
+            onChange={(e) => handleGameChange(e.target.value)}
+          >
+            {MOBA_GAMES.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.cardTitle}
+              </option>
+            ))}
           </select>
 
           <motion.div className="filter-tabs">
             <button type="button" className={filterMode === 'hero' ? 'active' : ''} onClick={() => setFilterMode('hero')}>
               ฮีโร่
             </button>
-            <button type="button" className={filterMode === 'tier' ? 'active' : ''} onClick={() => setFilterMode('tier')}>
+            <button
+              type="button"
+              className={filterMode === 'tier' ? 'active' : ''}
+              disabled={!tierModeReady}
+              title={tierModeReady ? undefined : 'รัน npm run sync:sortskin เพื่อโหลดระดับสกิน'}
+              onClick={() => tierModeReady && setFilterMode('tier')}
+            >
               ระดับสกิน
             </button>
           </motion.div>
 
+          <p className="studio-sidebar-section-title">
+            {filterMode === 'tier' ? 'ระดับสกิน' : 'เลือกฮีโร่'}
+          </p>
+
           <input
             type="search"
-            placeholder="ค้นหาฮีโร่..."
+            placeholder={filterMode === 'tier' ? 'ค้นหาระดับสกิน...' : 'ค้นหาฮีโร่...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          <div className="hero-list">
-            {filteredHeroes.map((h) => (
-              <button key={h.id} type="button" className={heroId === h.id ? 'active' : ''} onClick={() => setHeroId(h.id)}>
-                <span>{h.name}</span>
-                <span className="count">{h.skinCount} สกิน</span>
-              </button>
-            ))}
-          </div>
+          <motion.div className="hero-list">
+            {filterMode === 'hero'
+              ? filteredHeroes.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    className={heroId === h.id ? 'active' : ''}
+                    onClick={() => setHeroId(h.id)}
+                  >
+                    <span>{h.name}</span>
+                    <span className="count">{h.skinCount} สกิน</span>
+                  </button>
+                ))
+              : filteredCollections.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={collectionId === c.id ? 'active' : ''}
+                    onClick={() => setCollectionId(c.id)}
+                  >
+                    <span>{c.name}</span>
+                    <span className="count">{c.skinCount} สกิน</span>
+                  </button>
+                ))}
+          </motion.div>
         </aside>
 
         <motion.div className="studio-main" initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={springSnappy}>
           <section className="panel">
-            <motion.div className="panel-head">
+            <div className="panel-head">
               <div>
-                <h2>{activeHero?.name ?? 'ฮีโร่'}</h2>
+                <h2>
+                  {filterMode === 'tier'
+                    ? (activeCollection?.name ?? 'ระดับสกิน')
+                    : (activeHero?.name ?? 'ฮีโร่')}
+                </h2>
                 <p style={{ marginTop: 4, fontSize: '0.85rem' }}>
-                  เลือกสกินเพื่อเพิ่มในแถบด้านบน
-                  {skins[0]?.imageUrl ? ' · รูปจาก Fandom Wiki' : ''}
+                  {filterMode === 'tier'
+                    ? `เลือกสกินในกลุ่ม ${activeCollection?.name ?? ''} · รูปจาก SortSkin`
+                    : `เลือกสกินเพื่อเพิ่มในแถบด้านบน${displaySkins[0]?.imageUrl ? ' · รูปจาก SortSkin' : ''}`}
                 </p>
               </div>
-            </motion.div>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ width: 'auto', minHeight: 40 }}
+                onClick={handleSelectAllVisible}
+                disabled={displaySkins.length === 0}
+              >
+                <UserPlus size={16} />
+                {filterMode === 'tier' ? 'เพิ่มสกินในกลุ่มนี้ทั้งหมด' : 'เพิ่มสกินฮีโร่นี้ทั้งหมด'}
+              </button>
+            </div>
 
             <motion.div className="skin-grid" style={{ '--grid-min': `${minGrid}px` } as React.CSSProperties} layout>
               <AnimatePresence mode="popLayout">
-                {skins.map((skin) => (
+                {displaySkins.map((skin) => (
                   <motion.div key={skin.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={springSnappy}>
                     <SkinCard skin={skin} selected={isSelected(skin.id)} onSelect={() => (isSelected(skin.id) ? removeSkin(skin.id) : addSkin(skin))} />
                   </motion.div>
@@ -194,7 +532,7 @@ export function MobaStudioPage() {
                 <label htmlFor="view-size">ปรับขนาดมุมมอง: {viewSize}</label>
                 <input id="view-size" type="range" min={3} max={8} value={viewSize} onChange={(e) => setViewSize(Number(e.target.value))} />
               </div>
-              <button type="button" className="btn-secondary" style={{ width: 'auto', minHeight: 40 }} onClick={() => { clearSkins(); setShowPreview(false); setStatusText('ล้างสกินที่เลือกแล้ว'); setCandidates([]); }}>
+              <button type="button" className="btn-secondary" style={{ width: 'auto', minHeight: 40 }} onClick={() => { clearSkins(); setShowPreviewModal(false); setDetectRows([]); setStatusText('ล้างสกินที่เลือกแล้ว'); }}>
                 <X size={16} />
                 ล้าง
               </button>
@@ -203,112 +541,296 @@ export function MobaStudioPage() {
             <div className="studio-preview-shell">
               <div className="studio-preview-title">
                 สกินที่เลือก{selectedSkins.length > 0 ? ` (${selectedSkins.length})` : ''}
-                {selectedHeroCount > 0 ? ` · ${selectedHeroCount} ชิ้นจากฮีโร่นี้` : ''}
+                {uniqueHeroCount > 1 ? ` · รวม ${uniqueHeroCount} ฮีโร่` : ''}
+                {selectedHeroCount > 0 && uniqueHeroCount <= 1 ? ` · ${selectedHeroCount} ชิ้นจากฮีโร่นี้` : ''}
               </div>
               {statusText && <p className="studio-status">{statusText}</p>}
-              {showPreview && selectedSkins.length > 0 ? <div className="selected-strip preview-strip">{selectedSkins.map((skin, index) => <SkinCard key={skin.id} skin={skin} rank={index + 1} width={72 + viewSize * 12} selected={isSelected(skin.id)} onSelect={() => removeSkin(skin.id)} />)}</div> : <SortableSelectedStrip />}
+              <SortableSelectedStrip />
             </div>
           </section>
 
           <section className="panel">
-            <h3 style={{ marginBottom: 8 }}>กำหนดรูปแบบ</h3>
+            <h3 style={{ marginBottom: 8 }}>กำหนดขนาดรูปแบบ</h3>
+            <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--muted)' }}>
+              กำหนดจำนวนแถวแนวนอนและแนวตั้ง สำหรับรูปภาพที่ต้องการสร้าง
+            </p>
+            {gridOverflowMsg ? <p className="warning-text">{gridOverflowMsg}</p> : null}
             <label htmlFor="grid-format" style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-              ขนาดกริด (แนวนอน × แนวตั้ง)
+              ขนาดตาราง ({selectedSkins.length} สกิน) — แนวนอน × แนวตั้ง
             </label>
             <select id="grid-format" className="format-select" value={gridFormat} onChange={(e) => setGridFormat(e.target.value)}>
-              <option value="2x2">2 × 2</option>
-              <option value="3x3">3 × 3</option>
-              <option value="4x4">4 × 4</option>
-              <option value="4x5">4 × 5</option>
-              <option value="5x5">5 × 5</option>
+              {gridFormatOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
-            {needsMore && <p className="warning-text">กรุณาเลือกอย่างน้อย 4 สกิน</p>}
 
-            <div className="btn-row" style={{ marginTop: 20 }}>
-              <button type="button" className="btn-secondary btn-ai" onClick={handleSortByTier}>
-                <Wand2 size={18} />
-                ใช้ AI ช่วยเรียง
+            <label htmlFor="poster-template" style={{ display: 'block', marginTop: 14, fontSize: '0.85rem', color: 'var(--muted)' }}>
+              รูปแบบภาพสรุป
+            </label>
+            <select
+              id="poster-template"
+              className="format-select"
+              value={posterTemplate}
+              onChange={(e) => setPosterTemplate(e.target.value as SkinPosterTemplate)}
+            >
+              {POSTER_TEMPLATE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <div className="poster-options" style={{ marginTop: 14 }}>
+              <label className="poster-option">
+                <input
+                  type="checkbox"
+                  checked={groupByHero}
+                  onChange={(e) => setGroupByHero(e.target.checked)}
+                />
+                <span>
+                  <Layers size={16} aria-hidden />
+                  แยกกลุ่มตามฮีโร่
+                  {uniqueHeroCount > 1 ? ` (${uniqueHeroCount} ฮีโร่)` : ''}
+                </span>
+              </label>
+              <label className="poster-option">
+                <input
+                  type="checkbox"
+                  checked={showWatermark}
+                  onChange={(e) => setShowWatermark(e.target.checked)}
+                />
+                <span>แสดงโลโก้ร้าน (watermark)</span>
+              </label>
+              <label htmlFor="shop-name" className="poster-shop-label">
+                ชื่อร้านบนภาพ
+              </label>
+              <input
+                id="shop-name"
+                type="text"
+                className="format-select"
+                value={shopName}
+                placeholder="เช่น SkinCut หรือชื่อเพจ"
+                maxLength={32}
+                onChange={(e) => handleShopNameChange(e.target.value)}
+              />
+            </div>
+
+            {needsMore && <p className="warning-text">เลือกอย่างน้อย 4 สกินเพื่อสร้างภาพ</p>}
+            {atMaxSelected && <p className="warning-text">เลือกได้สูงสุด 48 สกินต่อภาพ</p>}
+
+            <div className="studio-action-stack">
+              <button type="button" className="btn-secondary" onClick={handleSortByTier}>
+                <ListOrdered size={18} />
+                เรียงตามความแรร์
               </button>
-              <button type="button" className="btn-secondary" onClick={() => fileRef.current?.click()}>
+              <button type="button" className="btn-secondary" onClick={() => setShowDetectModal(true)}>
                 <Scan size={18} />
-                ตรวจจับสกินจากรูปด้วย AI
+                ตรวจจับสกินจากรูป
               </button>
-              <button type="button" className="btn-secondary" onClick={handleImportCandidates} disabled={!candidates.length}>
-                <Check size={18} />
-                นำเข้าเป็นสกินที่เลือก
-              </button>
-              <button type="button" className="btn-secondary" onClick={handlePreview}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handlePreview}
+                disabled={selectedSkins.length < 4 || gridFormatInvalid}
+              >
                 <Eye size={18} />
                 ดูตัวอย่าง
               </button>
-              <button type="button" className="btn-secondary" onClick={handleImportCandidates} disabled={!candidates.length}>
-                <Check size={18} />
-                นำเข้าเป็นสกินที่เลือก
-              </button>
-              <motion.button type="button" className="btn-primary" style={{ width: '100%' }} disabled={needsMore} whileHover={needsMore ? {} : { scale: 1.02 }} onClick={() => setStatusText('สร้างภาพกริดพร้อมใช้งานแล้ว — เชื่อม export ต่อได้ทันที')}>
+              <motion.button
+                type="button"
+                className="btn-primary studio-create-btn"
+                disabled={needsMore || gridFormatInvalid}
+                whileHover={needsMore ? {} : { scale: 1.02 }}
+                onClick={handleExportPng}
+              >
                 <Sparkles size={18} />
-                สร้างภาพกริด
+                สร้างเลย: {studioCostLabel} คอยน์
               </motion.button>
             </div>
-            {candidates.length > 0 && (
-              <div className="detected-results">
-                <h4>ผลตรวจจับ</h4>
-                <div className="detected-results-list">
-                  {candidates.map((candidate) => (
-                    <div key={`${candidate.skinId}-${candidate.confidence}`} className="detected-result-card">
-                      <div>
-                        <strong>{candidate.name}</strong>
-                        <span>{candidate.heroName ?? 'Unknown'} · {(candidate.confidence * 100).toFixed(0)}%</span>
-                      </div>
-                      <button type="button" className="btn-ghost" onClick={() => setStatusText(`เตรียมเพิ่ม ${candidate.name}`)}>
-                        เพิ่ม
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <p className="studio-format-hint">
+              {STUDIO_PRICING_HINT} · เลือกสกินจากหลายฮีโร่ได้ — เปิด <strong>แยกกลุ่มตามฮีโร่</strong> เพื่อรวมทุกตัวในภาพเดียว ·{' '}
+              <strong>ตรวจจับสกินจากรูป</strong> = อัปกริดสกิน/สกรีนช็อต → ระบบอ่านชื่อจากรูป → คุณกด「เพิ่ม」ก่อนเข้ารายการ
+            </p>
           </section>
         </motion.div>
       </div>
 
+      <SkinPosterPreviewModal
+        open={showPreviewModal}
+        game={game}
+        skins={selectedSkins}
+        gridFormat={gridFormat}
+        template={posterTemplate}
+        groupByHero={groupByHero}
+        showWatermark={showWatermark}
+        shopName={shopName}
+        needsMore={needsMore || gridFormatInvalid}
+        userCoins={user?.coins ?? null}
+        exporting={exportingPoster}
+        onClose={() => setShowPreviewModal(false)}
+        onCreate={handleCreateFromModal}
+      />
+
       <AnimatePresence>
         {showDetectModal && (
-          <motion.div className="detect-modal-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="detect-modal" initial={{ scale: 0.96, y: 8 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 8 }} transition={springSnappy}>
+          <ModalPortal>
+            <motion.div
+              className="detect-modal-backdrop"
+              role="presentation"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !detecting && closeDetectModal()}
+            >
+            <motion.div
+              className="detect-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="detect-modal-title"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={springSnappy}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="detect-modal-head">
                 <div>
-                  <h3>ตรวจจับสกินจากรูปด้วย AI</h3>
-                  <p>อัปโหลด screenshot เพื่อส่งเข้า endpoint `POST /api/detect-skins`</p>
+                  <h3 id="detect-modal-title">ตรวจจับสกินจากรูป</h3>
+                  <p>
+                    อัปโหลดกริดสกิน / สกรีนช็อต — อ่านชื่อจากรูปแล้วให้คุณกด「เพิ่ม」เอง (ลบรายการผิดได้)
+                  </p>
                 </div>
-                <button type="button" className="icon-button" onClick={() => setShowDetectModal(false)} aria-label="ปิด">
+                <button type="button" className="icon-button" onClick={closeDetectModal} aria-label="ปิด">
                   <X size={18} />
                 </button>
               </div>
 
+              <div className="detect-modal-tips">
+                <DetectSkinGridIllustration />
+                <ul>
+                  <li>อัป<strong>สกรีนช็อตหน้าโปรไฟล์</strong> หรือภาพกริดสกินในเกม</li>
+                  <li>รอให้อ่านครบทุกช่อง (ประมาณ 1 นาที)</li>
+                  <li><strong>ลบรายการที่ผิด</strong> ด้วยปุ่ม X แล้วกด「เพิ่มทั้งหมด」</li>
+                  <li>รายการที่ไม่ตรงคลัง — เลือกสกินมือจากรายการซ้ายแทน</li>
+                </ul>
+              </div>
+
               <label className="detect-dropzone">
                 <Upload size={28} />
-                <strong>{detecting ? 'กำลังตรวจจับ...' : 'อัปโหลดภาพหน้าจอจากเกม'}</strong>
-                <span>รองรับ JPG, PNG, WEBP เพื่อใช้ตรวจจับสกิน</span>
+                <strong>
+                  {detecting
+                    ? detectProgress != null
+                      ? `กำลังอ่านข้อความจากรูป… ${detectProgress}%`
+                      : 'กำลังตรวจจับ...'
+                    : 'อัปโหลดภาพหน้าจอจากเกม'}
+                </strong>
+                <span>ลากและวางไฟล์ หรือคลิกเพื่อเลือก (รองรับหลายไฟล์)</span>
+                <span className="detect-dropzone-meta">รองรับ: JPG, PNG, WEBP (ไม่เกิน 10MB/ไฟล์)</span>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
+                  multiple
                   hidden
-                  onChange={(e) => handleDetectFile(e.target.files?.[0])}
+                  onChange={(e) => void handleDetectFiles(e.target.files)}
                 />
               </label>
 
+              {detecting && detectProgress != null && (
+                <div
+                  className="detect-progress"
+                  role="progressbar"
+                  aria-valuenow={detectProgress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="detect-progress__bar" style={{ width: `${detectProgress}%` }} />
+                </div>
+              )}
+
+              {detectMessage && !detecting && (
+                <p className="detect-modal-hint">{detectMessage}</p>
+              )}
+
+              {detectRows.length > 0 && !detecting && (
+                <div className="detected-results detect-modal-results">
+                  <h4>รายการจากรูป — ลบที่ผิดก่อนเพิ่ม</h4>
+                  <div className="detected-results-list">
+                    {detectRows.map((row) => {
+                      const label = row.skin
+                        ? [row.candidate.heroName, row.skin.name].filter(Boolean).join(' — ')
+                        : row.candidate.name;
+                      return (
+                        <div
+                          key={row.key}
+                          className={`detected-result-card${row.state === 'unmatched' ? ' is-unmatched' : ''}`}
+                        >
+                          <div className="detected-result-card__body">
+                            <strong>{label}</strong>
+                            <span>
+                              {row.state === 'unmatched' && 'ไม่พบในคลัง · '}
+                              {row.state === 'added' && 'เพิ่มแล้ว · '}
+                              {row.state === 'in-list' && 'มีในรายการแล้ว · '}
+                              {row.state === 'ready' && 'พร้อมเพิ่ม · '}
+                              {(row.candidate.confidence * 100).toFixed(0)}% ความมั่นใจ
+                            </span>
+                          </div>
+                          <div className="detected-result-card__actions">
+                            {row.state === 'ready' && row.skin && (
+                              <button
+                                type="button"
+                                className="btn-ghost detected-result-add"
+                                disabled={atMaxSelected}
+                                onClick={() => addDetectRow(row.key)}
+                              >
+                                <Plus size={14} />
+                                เพิ่ม
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="icon-button detected-result-remove"
+                              onClick={() => removeDetectRow(row.key)}
+                              aria-label="ลบรายการนี้"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="detect-modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowDetectModal(false)}>
+                {readyDetectCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={addAllDetectReady}
+                    disabled={atMaxSelected}
+                  >
+                    เพิ่มที่ตรงคลัง ({readyDetectCount})
+                  </button>
+                )}
+                <button type="button" className="btn-secondary" onClick={closeDetectModal}>
                   ปิด
                 </button>
-                <button type="button" className="btn-primary" onClick={() => fileRef.current?.click()} disabled={detecting}>
-                  เริ่มตรวจจับ
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={detecting}
+                >
+                  {detecting ? 'กำลังอ่านรูป...' : 'เลือกไฟล์'}
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+            </motion.div>
+          </ModalPortal>
         )}
       </AnimatePresence>
     </motion.div>

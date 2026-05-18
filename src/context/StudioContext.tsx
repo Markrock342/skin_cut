@@ -27,7 +27,7 @@ interface StudioContextValue extends StudioState {
 
 const StudioContext = createContext<StudioContextValue | null>(null);
 
-const MAX_SELECTED = 24;
+const MAX_SELECTED = 48;
 
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [selectedSkins, setSelectedSkins] = useState<Skin[]>([]);

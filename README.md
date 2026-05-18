@@ -14,8 +14,13 @@
 
 ```bash
 npm install
-npm run dev
+npm run dev:api   # เทอร์มินัล 1 — API (login / register / detect)
+npm run dev       # เทอร์มินัล 2 — เว็บ
 ```
+
+- สมัคร: `/register` · เข้าสู่ระบบ: `/login`
+- หน้า **เติมคอยน์** และ **ประวัติ** ต้อง login ก่อน
+- บัญชีเก็บที่ `.data/users.json` (local) · production ใช้ Vercel Functions ที่ `api/auth/`
 
 ## Arena Breakout — ไอเทม & เทมเพลต
 

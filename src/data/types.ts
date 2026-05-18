@@ -28,6 +28,15 @@ export interface Hero {
   wikiTitle?: string;
 }
 
+/** กลุ่มระดับสกินแบบ SortSkin (Legend, Collector, Epic, …) */
+export interface SkinCollection {
+  id: string;
+  name: string;
+  order: number;
+  skinCount: number;
+  skinIds: string[];
+}
+
 export interface Skin {
   id: string;
   heroId: string;
@@ -36,6 +45,10 @@ export interface Skin {
   tier: SkinTier;
   hue: number;
   imageUrl?: string;
+  /** UUID จาก SortSkin — ใช้เทียบตอน sync รายเดือน */
+  sortskinId?: string;
+  /** ระดับสกินหลักจาก SortSkin collections */
+  collection?: string;
 }
 
 export type BreakoutItemCategory =

@@ -5,7 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:mock-api": "node mock-detect-server.mjs",
+    "db:setup": "node scripts/apply-supabase-schema.mjs",
+    "db:migrate": "node scripts/apply-supabase-schema.mjs",
+    "db:admin": "node scripts/apply-supabase-schema.mjs set-admin-markrock.sql",
+    "db:bootstrap": "node scripts/apply-supabase-schema.mjs 004",
+    "dev:api": "node api-server.mjs",
+    "dev:mock-api": "node api-server.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "fetch:assets": "node scripts/fetch-skin-images.mjs",
@@ -13,6 +18,8 @@
     "fetch:assets:mlbb": "node scripts/fetch-skin-images.mjs --game=mlbb --limit=10",
     "build:arena": "node scripts/build-arena-catalog.mjs",
     "sync:game-logos": "node scripts/sync-sortskin-logos.mjs",
+    "sync:sortskin": "node scripts/sync-sortskin-catalog.mjs --game=all --json-only",
+    "sync:sortskin:local": "node scripts/sync-sortskin-catalog.mjs --game=all",
     "sync:sortskin:rov": "node scripts/sync-sortskin-catalog.mjs --game=rov",
     "sync:sortskin:rov:json": "node scripts/sync-sortskin-catalog.mjs --game=rov --json-only",
     "sync:sortskin:mlbb": "node scripts/sync-sortskin-catalog.mjs --game=mlbb",
@@ -23,12 +30,14 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.105.4",
     "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router-dom": "^7.15.1"
+    "react-router-dom": "^7.15.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

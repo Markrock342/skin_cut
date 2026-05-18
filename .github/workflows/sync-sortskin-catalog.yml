@@ -1,0 +1,36 @@
+# อัปเดตคลังสกินจาก SortSkin — รันทุกวันที่ 1 ของเดือน 09:00 UTC (16:00 ไทย)
+# ปิดได้ถ้าไม่ต้องการ commit อัตโนมัติ: ลบไฟล์นี้หรือ disable workflow
+name: Sync SortSkin catalog
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sync ROV + MLBB (json-only)
+        run: npm run sync:sortskin
+
+      - name: Commit catalog if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/data/rov/catalog.fetched.json src/data/mlbb/catalog.fetched.json
+          if git diff --staged --quiet; then
+            echo "No catalog changes."
+          else
+            git commit -m "chore: sync skin catalog from SortSkin"
+            git push
+          fi

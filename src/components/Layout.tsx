@@ -1,6 +1,10 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Moon, Sparkles } from 'lucide-react';
+import { Coins, LogOut, Moon, Shield, Sparkles } from 'lucide-react';
+import { formatCoins } from '../lib/format-coins';
+import { useAuth } from '../context/AuthContext';
+import { resolveIsAdmin } from '../lib/admin-access';
+import { useHeaderCompact } from '../hooks/useHeaderCompact';
 import { fadeUp, springSnappy } from '../lib/motion';
 
 const navItems = [
@@ -12,13 +16,18 @@ const navItems = [
 
 export function Layout() {
   const { pathname } = useLocation();
+  const { user, logout, loading } = useAuth();
+  const headerCompact = useHeaderCompact();
   const isStudio = pathname.startsWith('/studio');
+  const isAuthPage =
+    pathname === '/login' || pathname === '/register' || pathname === '/register/success';
 
   return (
     <>
       <div className="app-bg" aria-hidden />
       <motion.header
-        className="site-header"
+        className={`site-header${headerCompact ? ' site-header--compact' : ''}`}
+        data-compact={headerCompact || undefined}
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springSnappy}
@@ -28,7 +37,7 @@ export function Layout() {
           <span>SkinCut</span>
         </NavLink>
 
-        {!isStudio && (
+        {!isStudio && !isAuthPage && (
           <nav className="nav-dock" aria-label="หลัก">
             {navItems.map((item) => (
               <NavLink
@@ -52,9 +61,29 @@ export function Layout() {
           <button type="button" className="btn-icon" aria-label="สลับธีม">
             <Moon size={18} />
           </button>
-          <button type="button" className="btn-ghost">
-            เข้าสู่ระบบ
-          </button>
+          {!loading && user ? (
+            <>
+              {resolveIsAdmin(user) && (
+                <Link to="/admin" className="btn-ghost admin-header-link">
+                  <Shield size={16} aria-hidden />
+                  แอดมิน
+                </Link>
+              )}
+              <span className="user-chip" title={user.email}>
+                <Coins size={14} aria-hidden />
+                {formatCoins(user.coins)}
+                <span className="user-chip-name">{user.displayName}</span>
+              </span>
+              <button type="button" className="btn-ghost" onClick={() => void logout()}>
+                <LogOut size={16} aria-hidden />
+                ออก
+              </button>
+            </>
+          ) : (
+            <Link to="/login" className="btn-ghost">
+              เข้าสู่ระบบ
+            </Link>
+          )}
         </motion.div>
       </motion.header>
 
@@ -80,9 +109,10 @@ export function Layout() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <a href="#terms">Terms</a>
-            <a href="#privacy">Privacy</a>
-            <a href="#contact">Contact</a>
+            <NavLink to="/terms">ข้อกำหนด</NavLink>
+            <NavLink to="/privacy">ความเป็นส่วนตัว</NavLink>
+            <NavLink to="/contract">ข้อตกลง</NavLink>
+            <NavLink to="/contact">ติดต่อ</NavLink>
           </motion.div>
         </footer>
       )}

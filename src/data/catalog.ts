@@ -4,6 +4,7 @@ import type {
   Hero,
   PaymentMethod,
   Skin,
+  SkinCollection,
   SkinTier,
 } from './types';
 import { GAMES } from './games';
@@ -11,7 +12,7 @@ import rovBase from './rov/catalog.base.json';
 import mlbbBase from './mlbb/catalog.base.json';
 export { GAMES };
 
-type CatalogBundle = { heroes: Hero[]; skins: Skin[] };
+type CatalogBundle = { heroes: Hero[]; skins: Skin[]; collections?: SkinCollection[] };
 
 const fetchedModules = import.meta.glob<{ default: CatalogBundle }>('./*/catalog.fetched.json', {
   eager: true,
@@ -49,24 +50,41 @@ function buildFallbackSkins(hero: Hero): Skin[] {
 }
 
 const skinMap = new Map<string, Skin[]>();
+const skinById = new Map<string, Skin>();
+const collectionsByGame = new Map<'rov' | 'mlbb', SkinCollection[]>();
 
 function indexMobaCatalog(catalog: CatalogBundle) {
+  const gameId = catalog.heroes[0]?.gameId;
   catalog.heroes.forEach((hero) => {
     const fromJson = catalog.skins.filter((s) => s.heroId === hero.id);
     skinMap.set(hero.id, fromJson.length ? fromJson : buildFallbackSkins(hero));
   });
+  catalog.skins.forEach((skin) => skinById.set(skin.id, skin));
+  if (gameId === 'rov' || gameId === 'mlbb') {
+    collectionsByGame.set(gameId, catalog.collections ?? []);
+  }
 }
 
 indexMobaCatalog(rovCatalog);
 indexMobaCatalog(mlbbCatalog);
 
+export function getCollectionsByGame(gameId: 'rov' | 'mlbb'): SkinCollection[] {
+  return collectionsByGame.get(gameId) ?? [];
+}
+
+export function getSkinsByCollection(gameId: 'rov' | 'mlbb', collectionId: string): Skin[] {
+  const col = getCollectionsByGame(gameId).find((c) => c.id === collectionId);
+  if (!col) return [];
+  return col.skinIds.map((id) => skinById.get(id)).filter((s): s is Skin => Boolean(s));
+}
+
 const tierLabels: Record<SkinTier, string> = {
-  limited: 'Limited',
-  ultimate: 'Ultimate',
-  mythic: 'Mythic',
-  epic: 'Epic',
-  elite: 'Elite',
-  normal: 'Classic',
+  limited: 'จำกัด',
+  ultimate: 'อัลติเมท',
+  mythic: 'มิธิค',
+  epic: 'เอปิค',
+  elite: 'เอลิท',
+  normal: 'คลาสสิก',
 };
 
 export function tierLabel(tier: SkinTier) {
