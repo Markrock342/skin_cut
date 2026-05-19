@@ -10,6 +10,8 @@ interface MobaComposeSkinStripProps {
   onAddSkin: (imageUrl: string, label: string) => void;
   onAddAllSkins?: () => void;
   groupByHero?: boolean;
+  /** ปิดบนมือถือ — draggable ทำให้ tap ไม่ยิง click */
+  allowDrag?: boolean;
 }
 
 export function MobaComposeSkinStrip({
@@ -17,6 +19,7 @@ export function MobaComposeSkinStrip({
   onAddSkin,
   onAddAllSkins,
   groupByHero = false,
+  allowDrag = true,
 }: MobaComposeSkinStripProps) {
   if (skins.length === 0) return null;
 
@@ -48,14 +51,18 @@ export function MobaComposeSkinStrip({
               type="button"
               role="listitem"
               className="arena-moba-skin-cell"
-              draggable
-              onDragStart={(e) => {
-                setComposeSkinDragData(e.dataTransfer, {
-                  imageUrl: src,
-                  label: skin.name,
-                  skinId: skin.id,
-                });
-              }}
+              draggable={allowDrag}
+              onDragStart={
+                allowDrag
+                  ? (e) => {
+                      setComposeSkinDragData(e.dataTransfer, {
+                        imageUrl: src,
+                        label: skin.name,
+                        skinId: skin.id,
+                      });
+                    }
+                  : undefined
+              }
               onClick={() => onAddSkin(src, skin.name)}
               title={skin.name}
             >

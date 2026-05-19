@@ -12,6 +12,7 @@ interface ComposeLayerNodeProps {
   layer: ArenaComposeLayer;
   selected: boolean;
   snapGrid: boolean;
+  touchFriendly?: boolean;
   onSelect: () => void;
   onTransform: (transform: ArenaComposeLayer['transform'], phase: 'move' | 'end') => void;
   onDragStart: () => void;
@@ -41,6 +42,7 @@ export function ComposeLayerNode({
   layer,
   selected,
   snapGrid,
+  touchFriendly = false,
   onSelect,
   onTransform,
   onDragStart,
@@ -54,14 +56,32 @@ export function ComposeLayerNode({
     startTransform: ArenaComposeLayer['transform'];
     canvasW: number;
     canvasH: number;
+    pointerId: number;
   } | null>(null);
 
   latestTransformRef.current = layer.transform;
 
+  const endDrag = useCallback(
+    (pointerId: number) => {
+      const root = rootRef.current;
+      if (root?.hasPointerCapture(pointerId)) {
+        try {
+          root.releasePointerCapture(pointerId);
+        } catch {
+          /* already released */
+        }
+      }
+      dragRef.current = null;
+      onTransform(latestTransformRef.current, 'end');
+    },
+    [onTransform],
+  );
+
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
       const drag = dragRef.current;
-      if (!drag) return;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      e.preventDefault();
       const dxPx = e.clientX - drag.startX;
       const dyPx = e.clientY - drag.startY;
       const dxPct = (dxPx / drag.canvasW) * 100;
@@ -85,20 +105,27 @@ export function ComposeLayerNode({
     [onTransform, snapGrid],
   );
 
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null;
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-    onTransform(latestTransformRef.current, 'end');
-  }, [onPointerMove, onTransform]);
+  const onPointerUp = useCallback(
+    (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      endDrag(e.pointerId);
+    },
+    [endDrag, onPointerMove],
+  );
 
   const startDrag = (e: React.PointerEvent, mode: DragMode) => {
     if (layer.locked) return;
     e.stopPropagation();
+    e.preventDefault();
     onSelect();
     onDragStart();
     const canvas = rootRef.current?.closest('[data-compose-canvas]') as HTMLElement | null;
     if (!canvas) return;
+
     const rect = canvas.getBoundingClientRect();
     dragRef.current = {
       mode,
@@ -107,9 +134,18 @@ export function ComposeLayerNode({
       startTransform: { ...layer.transform },
       canvasW: rect.width,
       canvasH: rect.height,
+      pointerId: e.pointerId,
     };
-    window.addEventListener('pointermove', onPointerMove);
+
+    try {
+      rootRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   };
 
   const { x, y, width, height, rotation } = layer.transform;
@@ -125,7 +161,7 @@ export function ComposeLayerNode({
   return (
     <div
       ref={rootRef}
-      className={`arena-layer ab-compose-layer ab-compose-layer--${layer.kind}${selected ? ' is-selected' : ''}${layer.groupId ? ' is-grouped' : ''}${layer.locked ? ' is-locked' : ''}${!layer.visible ? ' is-hidden' : ''}`}
+      className={`arena-layer ab-compose-layer ab-compose-layer--${layer.kind}${selected ? ' is-selected' : ''}${layer.groupId ? ' is-grouped' : ''}${layer.locked ? ' is-locked' : ''}${!layer.visible ? ' is-hidden' : ''}${touchFriendly ? ' ab-compose-layer--touch' : ''}`}
       style={{
         left: `${x}%`,
         top: `${y}%`,
@@ -135,6 +171,7 @@ export function ComposeLayerNode({
         zIndex: layer.zIndex,
       }}
       onPointerDown={(e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
         if ((e.target as HTMLElement).closest('[data-resize]')) return;
         startDrag(e, { type: 'move' });
       }}

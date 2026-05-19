@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useComposeMobile } from '../../hooks/useMediaQuery';
 import { getHeroesByGame, getSkinsByHero } from '../../data/catalog';
 import type { Hero, Skin } from '../../data/types';
 import { setComposeSkinDragData } from '../../lib/compose-skin-drag';
@@ -29,9 +30,11 @@ function heroThumbUrl(heroId: string): string {
 function ComposeSkinPickCard({
   skin,
   onAddSkin,
+  allowDrag,
 }: {
   skin: Skin;
   onAddSkin: (imageUrl: string, label: string) => void;
+  allowDrag: boolean;
 }) {
   const src = resolveSkinImageDisplayUrl(skin.imageUrl);
   if (!src) return null;
@@ -39,14 +42,18 @@ function ComposeSkinPickCard({
   return (
     <div
       className="arena-compose-skin-pick"
-      draggable
-      onDragStart={(e) => {
-        setComposeSkinDragData(e.dataTransfer, {
-          imageUrl: src,
-          label: skin.name,
-          skinId: skin.id,
-        });
-      }}
+      draggable={allowDrag}
+      onDragStart={
+        allowDrag
+          ? (e) => {
+              setComposeSkinDragData(e.dataTransfer, {
+                imageUrl: src,
+                label: skin.name,
+                skinId: skin.id,
+              });
+            }
+          : undefined
+      }
     >
       <SkinCard skin={skin} onSelect={() => onAddSkin(src, skin.name)} />
     </div>
@@ -94,6 +101,7 @@ export function MobaComposeSkinPicker({
   onAddAllSkins,
   composeGroupByHero = false,
 }: MobaComposeSkinPickerProps) {
+  const allowDrag = !useComposeMobile();
   const heroes = useMemo(() => getHeroesByGame(gameId), [gameId]);
   const [heroId, setHeroId] = useState('');
   const [search, setSearch] = useState('');
@@ -146,6 +154,7 @@ export function MobaComposeSkinPicker({
           onAddSkin={onAddSkin}
           onAddAllSkins={onAddAllSkins}
           groupByHero={composeGroupByHero}
+          allowDrag={allowDrag}
         />
       )}
 
@@ -189,7 +198,12 @@ export function MobaComposeSkinPicker({
           style={{ '--grid-min': '88px' } as React.CSSProperties}
         >
           {visibleSkins.map((skin) => (
-            <ComposeSkinPickCard key={skin.id} skin={skin} onAddSkin={onAddSkin} />
+            <ComposeSkinPickCard
+              key={skin.id}
+              skin={skin}
+              onAddSkin={onAddSkin}
+              allowDrag={allowDrag}
+            />
           ))}
         </motion.div>
       )}

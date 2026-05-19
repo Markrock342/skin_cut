@@ -59,7 +59,7 @@ export function ungroupLayer(layers: ArenaComposeLayer[], layerId: string): Aren
   return ungroupById(layers, layer.groupId);
 }
 
-/** ย้ายเลเยอร์ในกลุ่มตาม delta ของเลเยอร์ที่ลาก */
+/** ย้าย/ย่อขยายเลเยอร์ในกลุ่มตามเลเยอร์ที่ลาก */
 export function applyGroupTransformDelta(
   layers: ArenaComposeLayer[],
   movedId: string,
@@ -72,26 +72,57 @@ export function applyGroupTransformDelta(
     );
   }
 
-  const dx = nextTransform.x - moved.transform.x;
-  const dy = nextTransform.y - moved.transform.y;
-  if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
-    return layers.map((l) =>
-      l.id === movedId ? { ...l, transform: clampTransform(nextTransform) } : l,
-    );
+  const gid = moved.groupId;
+  const start = moved.transform;
+  const dx = nextTransform.x - start.x;
+  const dy = nextTransform.y - start.y;
+  const scaleW = start.width > 0.01 ? nextTransform.width / start.width : 1;
+  const scaleH = start.height > 0.01 ? nextTransform.height / start.height : 1;
+  const isResize =
+    Math.abs(scaleW - 1) > 0.004 ||
+    Math.abs(scaleH - 1) > 0.004 ||
+    Math.abs(nextTransform.rotation - start.rotation) > 0.05;
+
+  if (!isResize) {
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
+      return layers.map((l) =>
+        l.id === movedId ? { ...l, transform: clampTransform(nextTransform) } : l,
+      );
+    }
+    return layers.map((l) => {
+      if (l.id === movedId) {
+        return { ...l, transform: clampTransform(nextTransform) };
+      }
+      if (l.groupId !== gid) return l;
+      return {
+        ...l,
+        transform: clampTransform({
+          ...l.transform,
+          x: l.transform.x + dx,
+          y: l.transform.y + dy,
+        }),
+      };
+    });
   }
 
-  const gid = moved.groupId;
   return layers.map((l) => {
+    if (l.groupId !== gid) {
+      return l.id === movedId ? { ...l, transform: clampTransform(nextTransform) } : l;
+    }
     if (l.id === movedId) {
       return { ...l, transform: clampTransform(nextTransform) };
     }
-    if (l.groupId !== gid) return l;
+    const t = l.transform;
+    const relX = t.x - start.x;
+    const relY = t.y - start.y;
     return {
       ...l,
       transform: clampTransform({
-        ...l.transform,
-        x: l.transform.x + dx,
-        y: l.transform.y + dy,
+        x: nextTransform.x + relX * scaleW,
+        y: nextTransform.y + relY * scaleH,
+        width: t.width * scaleW,
+        height: t.height * scaleH,
+        rotation: t.rotation,
       }),
     };
   });

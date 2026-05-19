@@ -19,7 +19,10 @@ import {
   Upload,
   ZoomIn,
   ZoomOut,
+  X,
+  SlidersHorizontal,
 } from 'lucide-react';
+import { useComposeMobile } from '../../hooks/useMediaQuery';
 import type { BreakoutItemCategory, Skin } from '../../data/types';
 import {
   type ArenaComposeDocument,
@@ -213,7 +216,9 @@ export function BreakoutComposeEditor({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<StudioTab>(isMoba ? 'skins' : 'upload');
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState<null | 'panel' | 'props'>(null);
   const gridMenuRef = useRef<HTMLDivElement>(null);
+  const isMobile = useComposeMobile() && immersive;
 
   const visibleTabs = useMemo(() => {
     if (!isMoba) return TABS;
@@ -248,6 +253,39 @@ export function BreakoutComposeEditor({
     const gid = images[0]?.groupId;
     return Boolean(gid && images.every((l) => l.groupId === gid));
   }, [normalizedDoc.layers]);
+
+  const openMobileTab = useCallback((id: StudioTab) => {
+    setTab(id);
+    if (isMobile) setMobileSheet('panel');
+  }, [isMobile]);
+
+  const handleSelectLayer = useCallback(
+    (id: string | null) => {
+      onSelectLayer(id);
+      if (!isMobile) return;
+      // ไม่เปิดแผง props อัตโนมัติ — บังแคนวาสตอนลาก/ย้ายรูป (ใช้ปุ่ม FAB)
+      if (!id && mobileSheet === 'props') setMobileSheet(null);
+    },
+    [isMobile, mobileSheet, onSelectLayer],
+  );
+
+  const handleCanvasDragStart = useCallback(() => {
+    onHistoryBegin();
+    if (isMobile && mobileSheet === 'props') setMobileSheet(null);
+  }, [isMobile, mobileSheet, onHistoryBegin]);
+
+  useEffect(() => {
+    if (!isMobile) setMobileSheet(null);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile || !mobileSheet) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobile, mobileSheet]);
 
   const patchLayer = useCallback(
     (id: string, patch: Partial<ArenaComposeLayer>, phase?: 'move' | 'end') => {
@@ -865,7 +903,9 @@ export function BreakoutComposeEditor({
   };
 
   return (
-    <div className={`arena-studio${immersive ? ' arena-studio--immersive' : ''}`}>
+    <div
+      className={`arena-studio${immersive ? ' arena-studio--immersive' : ''}${isMobile ? ' arena-studio--mobile' : ''}`}
+    >
       <input
         ref={bgInputRef}
         type="file"
@@ -900,7 +940,7 @@ export function BreakoutComposeEditor({
         }}
       />
 
-      <header className="arena-topbar">
+      <header className={`arena-topbar${isMobile ? ' arena-topbar--mobile' : ''}`}>
         <div className="arena-topbar__left">
           <span className="arena-topbar__brand">{studioBrand}</span>
           <select
@@ -1094,75 +1134,238 @@ export function BreakoutComposeEditor({
         </p>
       )}
 
-      {showPreviewWatermark && previewExportHint && !exportError && !statusText && (
+      {showPreviewWatermark && previewExportHint && !exportError && !statusText && !isMobile && (
         <p className="arena-preview-hint">{previewExportHint}</p>
       )}
 
-      <div className="arena-body">
-        <nav className="arena-rail" aria-label="เครื่องมือ">
-          {visibleTabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              className={`arena-rail__btn${tab === id ? ' is-on' : ''}`}
-              onClick={() => setTab(id)}
+      <div className={`arena-body${isMobile ? ' arena-body--mobile' : ''}`}>
+        {isMobile ? (
+          <>
+            <main className="arena-workspace arena-workspace--mobile">
+              <BreakoutComposeCanvas
+                ref={posterRef}
+                document={normalizedDoc}
+                selectedLayerId={selectedLayerId}
+                showGrid={showGrid}
+                snapGrid={snapGrid}
+                viewZoom={viewZoom}
+                onSelectLayer={handleSelectLayer}
+                onUpdateLayer={patchLayer}
+                onDragStart={handleCanvasDragStart}
+                onBackgroundUrl={setBackground}
+                onDropImageUrl={isMoba ? addImageLayer : undefined}
+                showPreviewWatermark={showPreviewWatermark}
+                highlightGroupId={selectedGroupId}
+                mobileCanvas
+                onViewZoomChange={onViewZoomChange}
+              />
+              {onViewZoomChange && (
+                <div className="arena-mobile-zoom-bar" aria-label="ซูมแคนวาส">
+                  <button
+                    type="button"
+                    className="arena-mobile-zoom-btn"
+                    onClick={() => bumpZoom(-0.2)}
+                    aria-label="ซูมออก"
+                  >
+                    <ZoomOut size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="arena-mobile-zoom-btn arena-mobile-zoom-btn--label"
+                    onClick={() => onViewZoomChange(1)}
+                  >
+                    {Math.round(viewZoom * 100)}%
+                  </button>
+                  <button
+                    type="button"
+                    className="arena-mobile-zoom-btn"
+                    onClick={() => bumpZoom(0.2)}
+                    aria-label="ซูมเข้า"
+                  >
+                    <ZoomIn size={20} />
+                  </button>
+                </div>
+              )}
+              {selectedLayer && !mobileSheet && (
+                <button
+                  type="button"
+                  className="arena-mobile-props-fab"
+                  onClick={() => setMobileSheet('props')}
+                  aria-label="เปิดแผงปรับเลเยอร์"
+                  title="ปรับตำแหน่ง / ขนาด / หมุน"
+                >
+                  <SlidersHorizontal size={22} />
+                </button>
+              )}
+            </main>
+
+            <nav className="arena-mobile-dock" aria-label="เครื่องมือ">
+              {visibleTabs.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`arena-mobile-dock__btn${tab === id && mobileSheet === 'panel' ? ' is-on' : ''}`}
+                  onClick={() => openMobileTab(id)}
+                >
+                  <Icon size={22} strokeWidth={1.5} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {mobileSheet && (
+              <button
+                type="button"
+                className="arena-mobile-sheet-backdrop"
+                aria-label="ปิดแผง"
+                onClick={() => setMobileSheet(null)}
+              />
+            )}
+
+            {mobileSheet === 'panel' && (
+            <div
+              className="arena-mobile-sheet is-open"
+              role="dialog"
+              aria-modal
+              aria-label={visibleTabs.find((t) => t.id === tab)?.label ?? 'เครื่องมือ'}
             >
-              <Icon size={20} strokeWidth={1.5} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
+              <div className="arena-mobile-sheet__head">
+                <strong>
+                  {visibleTabs.find((t) => t.id === tab)?.label ?? 'เครื่องมือ'}
+                </strong>
+                <button
+                  type="button"
+                  className="arena-mobile-sheet__close"
+                  onClick={() => setMobileSheet(null)}
+                  aria-label="ปิด"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="arena-mobile-sheet__body">{panelContent}</div>
+            </div>
+            )}
 
-        <aside className="arena-panel-wrap">{panelContent}</aside>
+            {mobileSheet === 'props' && selectedLayer && (
+            <div
+              className="arena-mobile-sheet arena-mobile-sheet--props is-open"
+              role="dialog"
+              aria-modal
+              aria-label="ปรับเลเยอร์"
+            >
+              <div className="arena-mobile-sheet__head">
+                <strong>{selectedLayer.label}</strong>
+                <button
+                  type="button"
+                  className="arena-mobile-sheet__close"
+                  onClick={() => setMobileSheet(null)}
+                  aria-label="ปิด"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="arena-mobile-sheet__body">
+                <BreakoutComposeInspector
+                  layer={selectedLayer}
+                  groupMemberCount={
+                    selectedGroupId
+                      ? normalizedDoc.layers.filter((l) => l.groupId === selectedGroupId)
+                          .length
+                      : 0
+                  }
+                  onPatch={(patch) => selectedLayerId && patchLayer(selectedLayerId, patch)}
+                  onDuplicate={() => selectedLayerId && duplicateLayer(selectedLayerId)}
+                  onDelete={() => selectedLayerId && deleteLayer(selectedLayerId)}
+                  onUngroup={selectedGroupId ? ungroupSelectedLayer : undefined}
+                  onFitToImage={
+                    selectedLayer &&
+                    (selectedLayer.kind === 'item' ||
+                      selectedLayer.kind === 'image' ||
+                      selectedLayer.kind === 'hero')
+                      ? () => selectedLayerId && void fitLayerToImage(selectedLayerId)
+                      : undefined
+                  }
+                  onTrimTransparent={
+                    selectedLayer &&
+                    (selectedLayer.kind === 'item' ||
+                      selectedLayer.kind === 'image' ||
+                      selectedLayer.kind === 'hero')
+                      ? () => selectedLayerId && void trimLayerTransparent(selectedLayerId)
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+            )}
+          </>
+        ) : (
+          <>
+            <nav className="arena-rail" aria-label="เครื่องมือ">
+              {visibleTabs.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`arena-rail__btn${tab === id ? ' is-on' : ''}`}
+                  onClick={() => setTab(id)}
+                >
+                  <Icon size={20} strokeWidth={1.5} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
 
-        <main className="arena-workspace">
-          <BreakoutComposeCanvas
-            ref={posterRef}
-            document={normalizedDoc}
-            selectedLayerId={selectedLayerId}
-            showGrid={showGrid}
-            snapGrid={snapGrid}
-            viewZoom={viewZoom}
-            onSelectLayer={onSelectLayer}
-            onUpdateLayer={patchLayer}
-            onDragStart={onHistoryBegin}
-            onBackgroundUrl={setBackground}
-            onDropImageUrl={isMoba ? addImageLayer : undefined}
-            showPreviewWatermark={showPreviewWatermark}
-            highlightGroupId={selectedGroupId}
-          />
-        </main>
+            <aside className="arena-panel-wrap">{panelContent}</aside>
 
-        <aside className="arena-props">
-          <BreakoutComposeInspector
-            layer={selectedLayer}
-            groupMemberCount={
-              selectedGroupId
-                ? normalizedDoc.layers.filter((l) => l.groupId === selectedGroupId).length
-                : 0
-            }
-            onPatch={(patch) => selectedLayerId && patchLayer(selectedLayerId, patch)}
-            onDuplicate={() => selectedLayerId && duplicateLayer(selectedLayerId)}
-            onDelete={() => selectedLayerId && deleteLayer(selectedLayerId)}
-            onUngroup={selectedGroupId ? ungroupSelectedLayer : undefined}
-            onFitToImage={
-              selectedLayer &&
-              (selectedLayer.kind === 'item' ||
-                selectedLayer.kind === 'image' ||
-                selectedLayer.kind === 'hero')
-                ? () => selectedLayerId && void fitLayerToImage(selectedLayerId)
-                : undefined
-            }
-            onTrimTransparent={
-              selectedLayer &&
-              (selectedLayer.kind === 'item' ||
-                selectedLayer.kind === 'image' ||
-                selectedLayer.kind === 'hero')
-                ? () => selectedLayerId && void trimLayerTransparent(selectedLayerId)
-                : undefined
-            }
-          />
-        </aside>
+            <main className="arena-workspace">
+              <BreakoutComposeCanvas
+                ref={posterRef}
+                document={normalizedDoc}
+                selectedLayerId={selectedLayerId}
+                showGrid={showGrid}
+                snapGrid={snapGrid}
+                viewZoom={viewZoom}
+                onSelectLayer={onSelectLayer}
+                onUpdateLayer={patchLayer}
+                onDragStart={onHistoryBegin}
+                onBackgroundUrl={setBackground}
+                onDropImageUrl={isMoba ? addImageLayer : undefined}
+                showPreviewWatermark={showPreviewWatermark}
+                highlightGroupId={selectedGroupId}
+              />
+            </main>
+
+            <aside className="arena-props">
+              <BreakoutComposeInspector
+                layer={selectedLayer}
+                groupMemberCount={
+                  selectedGroupId
+                    ? normalizedDoc.layers.filter((l) => l.groupId === selectedGroupId).length
+                    : 0
+                }
+                onPatch={(patch) => selectedLayerId && patchLayer(selectedLayerId, patch)}
+                onDuplicate={() => selectedLayerId && duplicateLayer(selectedLayerId)}
+                onDelete={() => selectedLayerId && deleteLayer(selectedLayerId)}
+                onUngroup={selectedGroupId ? ungroupSelectedLayer : undefined}
+                onFitToImage={
+                  selectedLayer &&
+                  (selectedLayer.kind === 'item' ||
+                    selectedLayer.kind === 'image' ||
+                    selectedLayer.kind === 'hero')
+                    ? () => selectedLayerId && void fitLayerToImage(selectedLayerId)
+                    : undefined
+                }
+                onTrimTransparent={
+                  selectedLayer &&
+                  (selectedLayer.kind === 'item' ||
+                    selectedLayer.kind === 'image' ||
+                    selectedLayer.kind === 'hero')
+                    ? () => selectedLayerId && void trimLayerTransparent(selectedLayerId)
+                    : undefined
+                }
+              />
+            </aside>
+          </>
+        )}
       </div>
     </div>
   );

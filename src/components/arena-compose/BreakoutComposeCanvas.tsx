@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { usePinchZoom } from '../../hooks/usePinchZoom';
 import { ImagePlus } from 'lucide-react';
 import type { ArenaComposeDocument, ArenaComposeLayer } from '../../data/arena-breakout/compose';
 import {
@@ -32,6 +33,9 @@ interface BreakoutComposeCanvasProps {
   showPreviewWatermark?: boolean;
   /** ไฮไลต์เลเยอร์ในกลุ่มเดียวกัน */
   highlightGroupId?: string | null;
+  /** มือถือ — จุดจับใหญ่ + pinch zoom */
+  mobileCanvas?: boolean;
+  onViewZoomChange?: (zoom: number) => void;
 }
 
 export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeCanvasProps>(
@@ -49,6 +53,8 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
       onDropImageUrl,
       showPreviewWatermark = true,
       highlightGroupId = null,
+      mobileCanvas = false,
+      onViewZoomChange,
     },
     ref,
   ) {
@@ -103,11 +109,18 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
     const effectiveScale = previewScale * Math.max(0.25, Math.min(viewZoom, 4));
     const scaledW = spec.width * effectiveScale;
     const scaledH = spec.height * effectiveScale;
+    const zoomedIn = viewZoom > 1.05;
+
+    usePinchZoom(stageRef, {
+      enabled: Boolean(mobileCanvas && onViewZoomChange),
+      zoom: viewZoom,
+      onZoomChange: onViewZoomChange ?? (() => {}),
+    });
 
     return (
       <div
         ref={stageRef}
-        className="arena-canvas-stage"
+        className={`arena-canvas-stage${mobileCanvas ? ' arena-canvas-stage--mobile' : ''}${zoomedIn ? ' is-zoomed' : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
           if (readComposeSkinDragData(e.dataTransfer) || e.dataTransfer.types.includes('Files')) {
@@ -175,6 +188,7 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
                       )
                     }
                     snapGrid={snapGrid}
+                    touchFriendly={mobileCanvas}
                     onSelect={() => onSelectLayer(layer.id)}
                     onDragStart={onDragStart}
                     onTransform={(transform, phase) =>
