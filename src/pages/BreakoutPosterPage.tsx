@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
@@ -44,6 +44,10 @@ import {
   loadComposeDraft,
   saveComposeDraft,
 } from '../lib/arena-compose-draft';
+import {
+  canClaimFreeExport,
+  markFreeExportUsed,
+} from '../lib/first-export-free';
 
 type FlowStep = 'guide' | 'prepare' | 'pick' | 'edit';
 
@@ -112,15 +116,30 @@ export function BreakoutPosterPage() {
     if (flow === 'edit') setHasDraft(Boolean(loadComposeDraft('arena-breakout')));
   }, [flow, doc]);
 
-  const exportLabel =
-    authConfigured && user
-      ? `ดาวน์โหลด PNG (${arenaCostLabel})`
-      : 'เข้าสู่ระบบ';
+  const freeExportAvailable = useMemo(
+    () => Boolean(user && canClaimFreeExport('arena')),
+    [user],
+  );
+  const exportLabel = !authConfigured
+    ? 'ดาวน์โหลด PNG'
+    : !user
+      ? 'เข้าสู่ระบบ'
+      : freeExportAvailable
+        ? 'ดาวน์โหลด PNG (ครั้งแรกฟรี)'
+        : `ดาวน์โหลด PNG (${arenaCostLabel})`;
 
   const coinsHint =
     authConfigured && user
-      ? `${user.coins.toFixed(2)} คอยน์ · ${ARENA_PRICING_HINT}`
+      ? freeExportAvailable
+        ? `${user.coins.toFixed(2)} คอยน์ · ครั้งแรกฟรี จากนั้น ${ARENA_PRICING_HINT}`
+        : `${user.coins.toFixed(2)} คอยน์ · ${ARENA_PRICING_HINT}`
       : undefined;
+
+  const previewExportHint = !user
+    ? 'รูปบนจอมีลายน้ำ · เข้าสู่ระบบเพื่อ Export ไฟล์เต็ม px ไม่มีลายน้ำ'
+    : freeExportAvailable
+      ? 'รูปบนจอมีลายน้ำ · Export ครั้งแรกฟรี ไม่มีลายน้ำ'
+      : 'รูปบนจอมีลายน้ำ · Export ได้ PNG เต็ม px ไม่มีลายน้ำ';
 
   const openStudio = (sel: ArenaCanvasSelection) => {
     const aspect = deriveAspectFamily(sel.width, sel.height);
@@ -217,7 +236,8 @@ export function BreakoutPosterPage() {
       setExportError(msg);
       return;
     }
-    if (user.coins < ARENA_POSTER_COST) {
+    const useFreeExport = canClaimFreeExport('arena');
+    if (!useFreeExport && user.coins < ARENA_POSTER_COST) {
       navigate('/topup');
       return;
     }
@@ -232,12 +252,17 @@ export function BreakoutPosterPage() {
         posterRef.current,
         `arena-studio-${spec.width}x${spec.height}.png`,
       );
-      const { coins, charged } = await chargeArenaPoster(
-        `Arena Studio · ${spec.label} (${spec.width}×${spec.height})`,
-      );
-      patchCoins(coins);
-      await refresh();
-      setStatusText(`ดาวน์โหลดแล้ว (−${charged.toFixed(2)} คอยน์)`);
+      if (useFreeExport) {
+        markFreeExportUsed('arena');
+        setStatusText('ดาวน์โหลดแล้ว (ครั้งแรกฟรี · ไม่มีลายน้ำ)');
+      } else {
+        const { coins, charged } = await chargeArenaPoster(
+          `Arena Studio · ${spec.label} (${spec.width}×${spec.height})`,
+        );
+        patchCoins(coins);
+        await refresh();
+        setStatusText(`ดาวน์โหลดแล้ว (−${charged.toFixed(2)} คอยน์)`);
+      }
     } catch (err) {
       if (err instanceof StudioAuthRequiredError) {
         navigate('/login', { state: { from: ARENA_STUDIO_PATH } });
@@ -305,6 +330,7 @@ export function BreakoutPosterPage() {
           hasDraft={hasDraft}
           onSaveDraft={handleSaveDraft}
           onLoadDraft={handleLoadDraft}
+          previewExportHint={previewExportHint}
         />
       </div>
     );

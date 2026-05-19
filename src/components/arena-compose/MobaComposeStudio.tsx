@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import {
@@ -31,6 +31,10 @@ import {
   type ComposeStudioId,
 } from '../../lib/arena-compose-draft';
 import { useComposeHistory } from '../../hooks/useComposeHistory';
+import {
+  canClaimFreeExport,
+  markFreeExportUsed,
+} from '../../lib/first-export-free';
 import { getGame } from '../../data/catalog';
 import type { BreakoutItemCategory, Skin } from '../../data/types';
 
@@ -96,12 +100,28 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
   }, []);
 
   const costLabel = formatComposePosterCost(composeCost);
-  const exportLabel =
-    authConfigured && user ? `ดาวน์โหลด PNG (${costLabel})` : 'เข้าสู่ระบบ';
+  const freeExportAvailable = useMemo(
+    () => Boolean(user && canClaimFreeExport('compose')),
+    [user],
+  );
+  const exportLabel = !authConfigured
+    ? 'ดาวน์โหลด PNG'
+    : !user
+      ? 'เข้าสู่ระบบ'
+      : freeExportAvailable
+        ? 'ดาวน์โหลด PNG (ครั้งแรกฟรี)'
+        : `ดาวน์โหลด PNG (${costLabel})`;
   const coinsHint =
     authConfigured && user
-      ? `${user.coins.toFixed(2)} คอยน์ · ${costLabel}/การ์ด`
+      ? freeExportAvailable
+        ? `${user.coins.toFixed(2)} คอยน์ · ครั้งแรกฟรี จากนั้น ${costLabel}/ครั้ง`
+        : `${user.coins.toFixed(2)} คอยน์ · ${costLabel}/ครั้ง`
       : undefined;
+  const previewExportHint = !user
+    ? 'รูปบนจอมีลายน้ำ · เข้าสู่ระบบเพื่อ Export ไฟล์เต็ม px ไม่มีลายน้ำ'
+    : freeExportAvailable
+      ? 'รูปบนจอมีลายน้ำ · Export ครั้งแรกฟรี ไม่มีลายน้ำ'
+      : 'รูปบนจอมีลายน้ำ · Export ได้ PNG เต็ม px ไม่มีลายน้ำ';
 
   const onDocumentChange = useCallback(
     (next: typeof doc, skipHistory?: boolean) => {
@@ -171,7 +191,8 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
       setExportError('อัปโหลดพื้นหลัง รูป หรือข้อความอย่างน้อย 1 ชิ้น');
       return;
     }
-    if (user.coins < composeCost) {
+    const useFreeExport = canClaimFreeExport('compose');
+    if (!useFreeExport && user.coins < composeCost) {
       navigate('/topup');
       return;
     }
@@ -186,12 +207,17 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
         posterRef.current,
         `${gameId}-compose-${spec.width}x${spec.height}.png`,
       );
-      const { coins, charged } = await chargeComposePoster(
-        `${game.shortName} Canva · ${spec.label}`,
-      );
-      patchCoins(coins);
-      await refresh();
-      setStatusText(`ดาวน์โหลดแล้ว (−${charged.toFixed(2)} คอยน์)`);
+      if (useFreeExport) {
+        markFreeExportUsed('compose');
+        setStatusText('ดาวน์โหลดแล้ว (ครั้งแรกฟรี · ไม่มีลายน้ำ)');
+      } else {
+        const { coins, charged } = await chargeComposePoster(
+          `${game.shortName} Canva · ${spec.label}`,
+        );
+        patchCoins(coins);
+        await refresh();
+        setStatusText(`ดาวน์โหลดแล้ว (−${charged.toFixed(2)} คอยน์)`);
+      }
     } catch (err) {
       if (err instanceof StudioAuthRequiredError) {
         navigate('/login', { state: { from: `/studio/${gameId}` } });
@@ -243,6 +269,7 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
           hasDraft={hasDraft}
           onSaveDraft={handleSaveDraft}
           onLoadDraft={handleLoadDraft}
+          previewExportHint={previewExportHint}
         />
       </div>
     );

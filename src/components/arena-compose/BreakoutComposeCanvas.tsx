@@ -9,6 +9,7 @@ import {
 import { readFileAsDataUrl } from '../../lib/crop-image';
 import { readComposeSkinDragData } from '../../lib/compose-skin-drag';
 import { ComposeLayerNode } from './ComposeLayerNode';
+import { ComposeCanvasWatermark } from './ComposeCanvasWatermark';
 
 interface BreakoutComposeCanvasProps {
   document: ArenaComposeDocument;
@@ -27,6 +28,8 @@ interface BreakoutComposeCanvasProps {
   onDragStart: () => void;
   /** วางสกินจากแถบซ้าย (ลากจากกริด) */
   onDropImageUrl?: (url: string, label?: string) => void;
+  /** ลายน้ำบนจอ (ไม่รวมใน export PNG) */
+  showPreviewWatermark?: boolean;
 }
 
 export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeCanvasProps>(
@@ -42,6 +45,7 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
       onBackgroundUrl,
       onDragStart,
       onDropImageUrl,
+      showPreviewWatermark = true,
     },
     ref,
   ) {
@@ -172,6 +176,8 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
                 ) : null,
               )}
             </div>
+
+            {showPreviewWatermark ? <ComposeCanvasWatermark /> : null}
           </div>
         </div>
         <p className="arena-canvas-stage__meta" aria-live="polite">

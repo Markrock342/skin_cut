@@ -54,6 +54,11 @@ async function inlineProxiedImages(node: HTMLElement) {
   await waitForPosterImages(node);
 }
 
+function shouldIgnoreExportElement(element: Element): boolean {
+  if (!(element instanceof HTMLElement)) return false;
+  return element.hasAttribute('data-export-ignore');
+}
+
 function resolveExportScale(node: HTMLElement) {
   const targetW = Number(node.dataset.exportW);
   const layoutW = node.offsetWidth || node.getBoundingClientRect().width;
@@ -73,11 +78,14 @@ export async function renderNodeToCanvas(node: HTMLElement) {
     logging: false,
   } as const;
 
+  const ignoreElements = shouldIgnoreExportElement;
+
   try {
     return await html2canvas(node, {
       ...base,
       useCORS: false,
       allowTaint: false,
+      ignoreElements,
     });
   } catch (first) {
     console.warn('html2canvas strict mode failed, retrying with allowTaint', first);
@@ -85,6 +93,7 @@ export async function renderNodeToCanvas(node: HTMLElement) {
       ...base,
       useCORS: true,
       allowTaint: true,
+      ignoreElements,
     });
   }
 }

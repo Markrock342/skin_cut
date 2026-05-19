@@ -113,6 +113,9 @@ interface BreakoutComposeEditorProps {
   onSaveDraft?: () => void;
   onLoadDraft?: () => void;
   hasDraft?: boolean;
+  /** ลายน้ำบนแคนวาส (ไม่รวมใน PNG export) */
+  showPreviewWatermark?: boolean;
+  previewExportHint?: string;
 }
 
 function applyZOrder(layers: ArenaComposeLayer[], orderedTopFirst: string[]) {
@@ -166,6 +169,8 @@ export function BreakoutComposeEditor({
   onSaveDraft,
   onLoadDraft,
   hasDraft = false,
+  showPreviewWatermark = true,
+  previewExportHint = 'รูปบนจอมีลายน้ำ · Export ได้ PNG เต็ม px ไม่มีลายน้ำ',
 }: BreakoutComposeEditorProps) {
   const isMoba = studioVariant === 'moba';
   const bgInputRef = useRef<HTMLInputElement>(null);
@@ -825,6 +830,10 @@ export function BreakoutComposeEditor({
         </p>
       )}
 
+      {showPreviewWatermark && previewExportHint && !exportError && !statusText && (
+        <p className="arena-preview-hint">{previewExportHint}</p>
+      )}
+
       <div className="arena-body">
         <nav className="arena-rail" aria-label="เครื่องมือ">
           {visibleTabs.map(({ id, label, icon: Icon }) => (
@@ -855,6 +864,7 @@ export function BreakoutComposeEditor({
             onDragStart={onHistoryBegin}
             onBackgroundUrl={setBackground}
             onDropImageUrl={isMoba ? addImageLayer : undefined}
+            showPreviewWatermark={showPreviewWatermark}
           />
         </main>
 
