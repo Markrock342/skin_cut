@@ -34,7 +34,7 @@ function ComposeSkinPickCard({
   if (!src) return null;
 
   return (
-    <motion.div
+    <div
       className="arena-compose-skin-pick"
       draggable
       onDragStart={(e) => {
@@ -46,7 +46,7 @@ function ComposeSkinPickCard({
       }}
     >
       <SkinCard skin={skin} onSelect={() => onAddSkin(src, skin.name)} />
-    </motion.div>
+    </div>
   );
 }
 

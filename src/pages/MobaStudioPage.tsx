@@ -675,11 +675,11 @@ export function MobaStudioPage() {
 
             <motion.div className="skin-grid" style={{ '--grid-min': `${minGrid}px` } as React.CSSProperties} layout>
               <AnimatePresence mode="popLayout">
-                {displaySkins.map((skin) => (
+                {displaySkins.map((skin, index) => (
                   <motion.div key={skin.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={springSnappy}>
                     <SkinCard
                       skin={skin}
-                      imagePriority
+                      imagePriority={index < 4}
                       selected={isSelected(skin.id)}
                       onSelect={() => (isSelected(skin.id) ? removeSkin(skin.id) : addSkin(skin))}
                     />

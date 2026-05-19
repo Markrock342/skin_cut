@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Skin } from '../data/types';
@@ -34,13 +34,30 @@ export function SkinCard({
   const reduceMotion = useReducedMotion();
   const [imgFailed, setImgFailed] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   const imageSrc = resolveSkinImageDisplayUrl(skin.imageUrl);
   const showImage = imageSrc && !imgFailed;
 
-  useEffect(() => {
+  const syncFromImgEl = (img: HTMLImageElement | null) => {
+    if (!img || !img.complete) return;
+    if (img.naturalWidth > 0) {
+      setImgLoaded(true);
+      setImgFailed(false);
+    } else {
+      setImgFailed(true);
+    }
+  };
+
+  useLayoutEffect(() => {
     setImgFailed(false);
     setImgLoaded(false);
+    syncFromImgEl(imgRef.current);
   }, [imageSrc]);
+
+  const handleImgRef = (el: HTMLImageElement | null) => {
+    imgRef.current = el;
+    syncFromImgEl(el);
+  };
 
   return (
     <motion.article
@@ -80,13 +97,17 @@ export function SkinCard({
       <motion.div className="skin-card-art" layout="position">
         {showImage ? (
           <img
+            ref={handleImgRef}
             className={`skin-card-img${imgLoaded ? ' is-loaded' : ''}`}
             src={imageSrc}
             alt={skin.name}
             loading={imagePriority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={imagePriority ? 'high' : 'auto'}
-            onLoad={() => setImgLoaded(true)}
+            onLoad={() => {
+              setImgLoaded(true);
+              setImgFailed(false);
+            }}
             onError={() => setImgFailed(true)}
           />
         ) : null}
