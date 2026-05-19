@@ -37,6 +37,10 @@ import {
 } from '../../lib/first-export-free';
 import { getGame } from '../../data/catalog';
 import type { BreakoutItemCategory, Skin } from '../../data/types';
+import {
+  applyMobaGridHandoff,
+  type ComposeGridHandoff,
+} from '../../lib/compose-from-grid';
 
 const DEFAULT_TEMPLATE = findCanvasTemplate('ig-square')!;
 
@@ -53,10 +57,22 @@ function selectionFromTemplate(id: string): ArenaCanvasSelection {
 interface MobaComposeStudioProps {
   gameId: 'rov' | 'mlbb';
   carrySkins?: Skin[];
+  /** ส่งจากโหมดกริด — เปิดแคนวาสพร้อมจัดกริด + ข้อความ */
+  gridHandoff?: ComposeGridHandoff | null;
+  /** ค่าปัจจุบันจากแถบกริด (ใช้เมื่อกด「เพิ่มทั้งหมด」ใน Canva) */
+  composeDefaults?: Pick<ComposeGridHandoff, 'gridFormat' | 'groupByHero' | 'shopName'>;
   onExit: () => void;
+  onHandoffConsumed?: () => void;
 }
 
-export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaComposeStudioProps) {
+export function MobaComposeStudio({
+  gameId,
+  carrySkins = [],
+  gridHandoff = null,
+  composeDefaults,
+  onExit,
+  onHandoffConsumed,
+}: MobaComposeStudioProps) {
   const navigate = useNavigate();
   const { user, refresh, patchCoins, authConfigured } = useAuth();
   const game = getGame(gameId);
@@ -94,6 +110,7 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
   const [viewZoom, setViewZoom] = useState(1);
   const studioId = gameId as ComposeStudioId;
   const [hasDraft, setHasDraft] = useState(() => Boolean(loadComposeDraft(studioId)));
+  const handoffAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     void fetchStudioPricing().then((p) => setComposeCost(p.composePosterCost));
@@ -161,20 +178,35 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
     setStatusText(`โหลดร่างแล้ว · ${formatDraftSavedAt(draft.savedAt)}`);
   }, [gameId, resetDoc, studioId]);
 
-  const openStudio = (sel: ArenaCanvasSelection) => {
-    resetDoc(
-      normalizeComposeDocument(
-        createMobaComposeDocument({
-          width: sel.width,
-          height: sel.height,
-          label: sel.label,
-          templateId: sel.templateId,
-          gameId,
-        }),
-      ),
-    );
-    setFlow('edit');
-  };
+  const openStudio = useCallback(
+    (sel: ArenaCanvasSelection, handoff?: ComposeGridHandoff | null) => {
+      let doc = createMobaComposeDocument({
+        width: sel.width,
+        height: sel.height,
+        label: sel.label,
+        templateId: sel.templateId,
+        gameId,
+      });
+      if (handoff?.skins.length) {
+        doc = applyMobaGridHandoff(doc, handoff);
+      }
+      resetDoc(normalizeComposeDocument(doc));
+      setFlow('edit');
+      setSelectedLayerId(null);
+    },
+    [gameId, resetDoc],
+  );
+
+  useEffect(() => {
+    if (!gridHandoff?.skins.length) return;
+    const key = `${gridHandoff.skins.map((s) => s.id).join(',')}:${gridHandoff.gridFormat}:${gridHandoff.groupByHero}`;
+    if (handoffAppliedRef.current === key) return;
+    handoffAppliedRef.current = key;
+    const sel = selectionFromTemplate(DEFAULT_TEMPLATE.id);
+    setCanvasSelection(sel);
+    openStudio(sel, gridHandoff);
+    onHandoffConsumed?.();
+  }, [gridHandoff, onHandoffConsumed, openStudio]);
 
   const handleExport = async () => {
     if (!posterRef.current) return;
@@ -250,6 +282,9 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
           studioBrand={`${game.shortName} Studio`}
           studioVariant="moba"
           carrySkins={carrySkins}
+          composeGridFormat={gridHandoff?.gridFormat ?? composeDefaults?.gridFormat}
+          composeGroupByHero={gridHandoff?.groupByHero ?? composeDefaults?.groupByHero ?? false}
+          composeShopName={gridHandoff?.shopName ?? composeDefaults?.shopName}
           composeGameId={gameId}
           onDocumentChange={onDocumentChange}
           onHistoryBegin={beginTransaction}
@@ -277,14 +312,14 @@ export function MobaComposeStudio({ gameId, carrySkins = [], onExit }: MobaCompo
 
   return (
     <div className="moba-compose-flow">
-      <button type="button" className="back-link" onClick={onExit}>
-        <ArrowLeft size={16} />
+      <button type="button" className="back-link back-link--studio" onClick={onExit}>
+        <ArrowLeft size={16} aria-hidden />
         กลับโหมดกริดสกิน
       </button>
       <BreakoutStudioSetup
         selection={canvasSelection}
         onSelectionChange={setCanvasSelection}
-        onContinue={() => openStudio(canvasSelection)}
+        onContinue={() => openStudio(canvasSelection, null)}
         onBack={onExit}
         previewGameId={gameId}
         previewVariant="skins"

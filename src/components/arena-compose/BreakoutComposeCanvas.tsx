@@ -30,6 +30,8 @@ interface BreakoutComposeCanvasProps {
   onDropImageUrl?: (url: string, label?: string) => void;
   /** ลายน้ำบนจอ (ไม่รวมใน export PNG) */
   showPreviewWatermark?: boolean;
+  /** ไฮไลต์เลเยอร์ในกลุ่มเดียวกัน */
+  highlightGroupId?: string | null;
 }
 
 export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeCanvasProps>(
@@ -46,6 +48,7 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
       onDragStart,
       onDropImageUrl,
       showPreviewWatermark = true,
+      highlightGroupId = null,
     },
     ref,
   ) {
@@ -165,7 +168,12 @@ export const BreakoutComposeCanvas = forwardRef<HTMLDivElement, BreakoutComposeC
                   <ComposeLayerNode
                     key={layer.id}
                     layer={layer}
-                    selected={selectedLayerId === layer.id}
+                    selected={
+                      selectedLayerId === layer.id ||
+                      Boolean(
+                        highlightGroupId && layer.groupId && layer.groupId === highlightGroupId,
+                      )
+                    }
                     snapGrid={snapGrid}
                     onSelect={() => onSelectLayer(layer.id)}
                     onDragStart={onDragStart}

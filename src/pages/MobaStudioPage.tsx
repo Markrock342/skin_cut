@@ -10,6 +10,7 @@ import {
   Plus,
   Sparkles,
   Scan,
+  LayoutGrid,
   X,
   Upload,
   UserPlus,
@@ -63,6 +64,7 @@ import { preloadSkinImages } from '../lib/preload-skin-images';
 import { MobaComposeStudio } from '../components/arena-compose/MobaComposeStudio';
 import { fetchStudioPricing } from '../lib/studio-pricing-public';
 import { formatComposePosterCost } from '../config/compose-pricing';
+import type { ComposeGridHandoff } from '../lib/compose-from-grid';
 
 type StudioMode = 'grid' | 'compose';
 
@@ -124,6 +126,7 @@ export function MobaStudioPage() {
   const [shopName, setShopName] = useState(() => loadShopName());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [studioMode, setStudioMode] = useState<StudioMode>('grid');
+  const [composeHandoff, setComposeHandoff] = useState<ComposeGridHandoff | null>(null);
   const [composeCost, setComposeCost] = useState(5);
   const fileRef = useRef<HTMLInputElement>(null);
   const detectDialogRef = useRef<HTMLDivElement>(null);
@@ -489,12 +492,39 @@ export function MobaStudioPage() {
     dialogRef: detectDialogRef,
   });
 
+  const composeDefaults = useMemo(
+    (): Pick<ComposeGridHandoff, 'gridFormat' | 'groupByHero' | 'shopName'> => ({
+      gridFormat,
+      groupByHero,
+      shopName: shopName.trim() || undefined,
+    }),
+    [gridFormat, groupByHero, shopName],
+  );
+
+  const startComposeWithHandoff = () => {
+    if (selectedSkins.length < 1) return;
+    setComposeHandoff({
+      skins: selectedSkins,
+      gridFormat,
+      groupByHero,
+      shopName: shopName.trim() || undefined,
+      priceText: 'ราคา: ______',
+    });
+    setStudioMode('compose');
+  };
+
   if (studioMode === 'compose') {
     return (
       <MobaComposeStudio
         gameId={gid}
         carrySkins={selectedSkins}
-        onExit={() => setStudioMode('grid')}
+        gridHandoff={composeHandoff}
+        composeDefaults={composeDefaults}
+        onHandoffConsumed={() => setComposeHandoff(null)}
+        onExit={() => {
+          setStudioMode('grid');
+          setComposeHandoff(null);
+        }}
       />
     );
   }
@@ -521,13 +551,27 @@ export function MobaStudioPage() {
           type="button"
           role="tab"
           aria-selected={false}
-          className="studio-mode-tab"
+          className="studio-mode-tab studio-mode-tab--canva"
           onClick={() => setStudioMode('compose')}
         >
-          ตกแต่ง Canva
+          <Sparkles size={17} strokeWidth={2} aria-hidden />
+          <span className="studio-mode-tab__main">
+            ตกแต่ง Canva
+            <small>พื้นหลัง · จัดรูป · ข้อความ</small>
+          </span>
           <span className="studio-mode-tab__price">{composeCostLabel}/การ์ด</span>
         </button>
       </div>
+      <p className="studio-mode-tabs__hint">
+        อยากจัดเลย์เอาต์เอง ใส่พื้นหลัง หรือจัดหลายรูปบนแคนวาส → กด{' '}
+        <button
+          type="button"
+          className="studio-mode-tabs__hint-link"
+          onClick={() => setStudioMode('compose')}
+        >
+          ตกแต่ง Canva
+        </button>
+      </p>
 
       <motion.div className={`studio-layout${sidebarOpen ? ' studio-layout--sidebar-open' : ''}`}>
         <button
@@ -790,6 +834,16 @@ export function MobaStudioPage() {
             {atMaxSelected && <p className="warning-text">เลือกได้สูงสุด 48 สกินต่อภาพ</p>}
 
             <div className="studio-action-stack">
+              <button
+                type="button"
+                className="btn-primary studio-compose-handoff-btn"
+                disabled={selectedSkins.length < 1 || gridFormatInvalid}
+                onClick={startComposeWithHandoff}
+              >
+                <LayoutGrid size={18} />
+                ส่งไป Canva — จัดกริด + ราคา
+                {groupByHero && uniqueHeroCount > 1 ? ` · ${uniqueHeroCount} ฮีโร่` : ''}
+              </button>
               <button type="button" className="btn-secondary" onClick={handleSortByTier}>
                 <ListOrdered size={18} />
                 เรียงตามความแรร์

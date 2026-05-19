@@ -7,6 +7,8 @@ import {
   Grid3x3,
   ImageIcon,
   Layers,
+  Group,
+  LayoutGrid,
   Sparkles,
   Plus,
   Redo2,
@@ -46,13 +48,39 @@ import {
   getArenaItem,
   getArenaItemsByCategory,
 } from '../../lib/arena-items';
+import {
+  appendHeroSectionLabels,
+  imageLayerFromSkin,
+  priceTextLayer,
+  shopNameTextLayer,
+} from '../../lib/compose-from-grid';
+import {
+  applyGridToImageLayers,
+  applyGridTransformsToImageLayers,
+  getImageLayersForGrid,
+  orderSkinsForComposeGrid,
+} from '../../lib/compose-grid-layout';
+import { getHero } from '../../data/catalog';
+import {
+  applyGroupTransformDelta,
+  getGroupableImageLayers,
+  groupAllImageLayers,
+  ungroupById,
+  ungroupLayer,
+} from '../../lib/compose-layer-groups';
 import { readFileAsDataUrl } from '../../lib/crop-image';
+import {
+  getGridFormatOptionsForCount,
+  parseGridFormat,
+  suggestGridFormat,
+} from '../../lib/grid-formats';
 import {
   computeItemLayerTransform,
   getCategorySizeLimits,
   loadImageContentSize,
   trimImageUrlToContent,
 } from '../../lib/image-bounds';
+import { resolveSkinImageDisplayUrl } from '../../lib/skin-image-url';
 import { springSnappy } from '../../lib/motion';
 import { BreakoutGamePreparePanel } from '../BreakoutGamePreparePanel';
 import { BreakoutComposeCanvas } from './BreakoutComposeCanvas';
@@ -100,6 +128,10 @@ interface BreakoutComposeEditorProps {
   studioVariant?: 'arena' | 'moba';
   /** สกินที่เลือกจากโหมดกริด — แสดงด้านบนในแท็บสกิน */
   carrySkins?: Skin[];
+  /** ค่าจากโหมดกริด — ใช้จัดกริด / แยกฮีโร่ */
+  composeGridFormat?: string;
+  composeGroupByHero?: boolean;
+  composeShopName?: string;
   composeGameId?: 'rov' | 'mlbb';
   preparedProfileImage?: string;
   preparedCharacterImage?: string;
@@ -159,6 +191,9 @@ export function BreakoutComposeEditor({
   studioBrand = 'Arena Studio',
   studioVariant = 'arena',
   carrySkins = [],
+  composeGridFormat,
+  composeGroupByHero = false,
+  composeShopName,
   composeGameId,
   preparedProfileImage,
   preparedCharacterImage,
@@ -177,6 +212,8 @@ export function BreakoutComposeEditor({
   const heroInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<StudioTab>(isMoba ? 'skins' : 'upload');
+  const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const gridMenuRef = useRef<HTMLDivElement>(null);
 
   const visibleTabs = useMemo(() => {
     if (!isMoba) return TABS;
@@ -193,14 +230,48 @@ export function BreakoutComposeEditor({
   const selectedLayer = normalizedDoc.layers.find((l) => l.id === selectedLayerId) ?? null;
   const bgLayer = findBackgroundLayer(normalizedDoc.layers);
   const canExport = documentHasContent(normalizedDoc);
+  const imageLayerCount = useMemo(
+    () => getImageLayersForGrid(normalizedDoc.layers).length,
+    [normalizedDoc.layers],
+  );
+  const gridFormatOptions = useMemo(
+    () => getGridFormatOptionsForCount(Math.max(2, imageLayerCount)),
+    [imageLayerCount],
+  );
+  const selectedGroupId = useMemo(() => {
+    if (!selectedLayerId) return null;
+    return normalizedDoc.layers.find((l) => l.id === selectedLayerId)?.groupId ?? null;
+  }, [normalizedDoc.layers, selectedLayerId]);
+  const imageLayersGrouped = useMemo(() => {
+    const images = getGroupableImageLayers(normalizedDoc.layers);
+    if (images.length < 2) return false;
+    const gid = images[0]?.groupId;
+    return Boolean(gid && images.every((l) => l.groupId === gid));
+  }, [normalizedDoc.layers]);
 
   const patchLayer = useCallback(
     (id: string, patch: Partial<ArenaComposeLayer>, phase?: 'move' | 'end') => {
+      const layer = normalizedDoc.layers.find((l) => l.id === id);
+      let nextLayers = normalizedDoc.layers;
+
+      if (patch.transform && layer) {
+        nextLayers = applyGroupTransformDelta(normalizedDoc.layers, id, {
+          ...layer.transform,
+          ...patch.transform,
+        });
+        const restPatch = { ...patch };
+        delete restPatch.transform;
+        if (Object.keys(restPatch).length > 0) {
+          nextLayers = nextLayers.map((l) => (l.id === id ? { ...l, ...restPatch } : l));
+        }
+      } else {
+        nextLayers = normalizedDoc.layers.map((l) => (l.id === id ? { ...l, ...patch } : l));
+      }
+
       let next: ArenaComposeDocument = {
         ...normalizedDoc,
-        layers: normalizedDoc.layers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+        layers: nextLayers,
       };
-      const layer = normalizedDoc.layers.find((l) => l.id === id);
       if (patch.text !== undefined && layer?.kind === 'text-money') {
         next = updateTextField(next, 'money', patch.text);
       }
@@ -271,6 +342,137 @@ export function BreakoutComposeEditor({
     [normalizedDoc, onDocumentChange, onSelectLayer],
   );
 
+  const heroNameFor = useCallback((heroId: string) => getHero(heroId)?.name ?? heroId, []);
+
+  const layoutCarrySkinsOnLayers = useCallback(
+    (layers: ArenaComposeLayer[], skins: Skin[], gridFormat: string, groupByHero: boolean) => {
+      const ordered = orderSkinsForComposeGrid(skins, groupByHero);
+      const visible = ordered.filter((s) => resolveSkinImageDisplayUrl(s.imageUrl));
+      if (visible.length === 0) return layers;
+      const topReserve = composeShopName?.trim() ? 9.5 : 7;
+      return groupAllImageLayers(
+        applyGridTransformsToImageLayers(
+          layers,
+          visible,
+          gridFormat,
+          groupByHero,
+          heroNameFor,
+          { topReserve, bottomReserve: 9 },
+        ),
+      );
+    },
+    [composeShopName, heroNameFor],
+  );
+
+  const arrangeImageLayersInGrid = useCallback(
+    (gridFormat: string) => {
+      const imageLayers = getImageLayersForGrid(normalizedDoc.layers);
+      if (imageLayers.length < 2) return;
+      const useHero =
+        composeGroupByHero &&
+        carrySkins.length > 0 &&
+        imageLayers.every((l) => l.skinId);
+      let nextLayers = normalizedDoc.layers;
+      if (useHero) {
+        nextLayers = layoutCarrySkinsOnLayers(
+          normalizedDoc.layers,
+          carrySkins,
+          gridFormat,
+          true,
+        );
+      } else {
+        nextLayers = groupAllImageLayers(
+          applyGridToImageLayers(normalizedDoc.layers, gridFormat, parseGridFormat),
+        );
+      }
+      onDocumentChange({ ...normalizedDoc, layers: nextLayers });
+      onHistoryCommit();
+      setGridMenuOpen(false);
+    },
+    [
+      carrySkins,
+      composeGroupByHero,
+      layoutCarrySkinsOnLayers,
+      normalizedDoc,
+      onDocumentChange,
+      onHistoryCommit,
+    ],
+  );
+
+  const addAllCarrySkinsInGrid = useCallback(() => {
+    if (!carrySkins.length) return;
+    const gridFormat = composeGridFormat ?? suggestGridFormat(carrySkins.length);
+    const groupByHero = composeGroupByHero;
+    const ordered = orderSkinsForComposeGrid(carrySkins, groupByHero);
+
+    let layers = [...normalizedDoc.layers];
+    let z = nextZIndex(layers);
+    for (const skin of ordered) {
+      const layer = imageLayerFromSkin(skin, z++);
+      if (layer) layers.push(layer);
+    }
+
+    const visible = ordered.filter((s) => resolveSkinImageDisplayUrl(s.imageUrl));
+    if (visible.length === 0) return;
+
+    layers = layoutCarrySkinsOnLayers(layers, visible, gridFormat, groupByHero);
+    if (groupByHero) {
+      layers = appendHeroSectionLabels(layers, visible);
+    }
+
+    const hasShop = layers.some((l) => l.label === 'ชื่อร้าน');
+    const hasPrice = layers.some((l) => l.label === 'ราคา');
+    if (composeShopName?.trim() && !hasShop) {
+      layers.push(shopNameTextLayer(composeShopName.trim(), nextZIndex(layers)));
+    }
+    if (!hasPrice) {
+      layers.push(priceTextLayer('ราคา: ______', nextZIndex(layers)));
+    }
+
+    onDocumentChange({ ...normalizedDoc, layers });
+    onHistoryCommit();
+    setTab('layers');
+    setGridMenuOpen(false);
+  }, [
+    carrySkins,
+    composeGridFormat,
+    composeGroupByHero,
+    composeShopName,
+    layoutCarrySkinsOnLayers,
+    normalizedDoc,
+    onDocumentChange,
+    onHistoryCommit,
+  ]);
+
+  const groupImageLayers = useCallback(() => {
+    if (imageLayersGrouped) return;
+    onDocumentChange({
+      ...normalizedDoc,
+      layers: groupAllImageLayers(normalizedDoc.layers),
+    });
+    onHistoryCommit();
+  }, [imageLayersGrouped, normalizedDoc, onDocumentChange, onHistoryCommit]);
+
+  const ungroupSelectedLayer = useCallback(() => {
+    if (!selectedLayerId) return;
+    onDocumentChange({
+      ...normalizedDoc,
+      layers: ungroupLayer(normalizedDoc.layers, selectedLayerId),
+    });
+    onHistoryCommit();
+  }, [normalizedDoc, onDocumentChange, onHistoryCommit, selectedLayerId]);
+
+  const ungroupByGroupId = useCallback(
+    (groupId: string) => {
+      onDocumentChange({
+        ...normalizedDoc,
+        layers: ungroupById(normalizedDoc.layers, groupId),
+      });
+      onHistoryCommit();
+    },
+    [normalizedDoc, onDocumentChange, onHistoryCommit],
+  );
+
   const duplicateLayer = useCallback(
     (id: string) => {
       const src = normalizedDoc.layers.find((l) => l.id === id);
@@ -295,6 +497,7 @@ export function BreakoutComposeEditor({
         ...src,
         id: newLayerId(prefix),
         label: `${src.label} (สำเนา)`,
+        groupId: undefined,
         transform: {
           ...src.transform,
           x: Math.min(88, src.transform.x + 2),
@@ -462,6 +665,16 @@ export function BreakoutComposeEditor({
     return () => window.removeEventListener('keydown', onKey);
   }, [deleteLayer, normalizedDoc.layers, onRedo, onUndo, selectedLayerId]);
 
+  useEffect(() => {
+    if (!gridMenuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (gridMenuRef.current?.contains(e.target as Node)) return;
+      setGridMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [gridMenuOpen]);
+
   const panelContent = useMemo(() => {
     if (tab === 'upload') {
       const heroSrc = normalizedDoc.layers.find((l) => l.kind === 'hero')?.src;
@@ -529,6 +742,8 @@ export function BreakoutComposeEditor({
           gameId={composeGameId}
           carrySkins={carrySkins}
           onAddSkin={addImageLayer}
+          onAddAllSkins={carrySkins.length >= 1 ? addAllCarrySkinsInGrid : undefined}
+          composeGroupByHero={composeGroupByHero}
         />
       );
     }
@@ -583,6 +798,8 @@ export function BreakoutComposeEditor({
           }
           onPatch={patchLayer}
           onDelete={deleteLayer}
+          selectedGroupId={selectedGroupId}
+          onUngroupGroup={ungroupByGroupId}
         />
       );
     }
@@ -626,6 +843,7 @@ export function BreakoutComposeEditor({
     carrySkins,
     composeGameId,
     addCustomText,
+    addAllCarrySkinsInGrid,
     addImageLayer,
     addItemLayer,
     deleteLayer,
@@ -636,6 +854,8 @@ export function BreakoutComposeEditor({
     patchLayer,
     preparedCharacterImage,
     preparedProfileImage,
+    selectedGroupId,
+    ungroupByGroupId,
   ]);
 
   const bumpZoom = (delta: number) => {
@@ -737,10 +957,54 @@ export function BreakoutComposeEditor({
             type="button"
             className={`arena-tool-btn${showGrid ? ' is-on' : ''}`}
             onClick={() => onShowGrid(!showGrid)}
-            title="ตาราง"
+            title="แสดงตารางช่วยจัด"
           >
             <Grid3x3 size={16} />
           </button>
+          {isMoba && imageLayerCount >= 2 && !imageLayersGrouped && (
+            <button
+              type="button"
+              className="arena-tool-btn arena-tool-btn--label"
+              onClick={groupImageLayers}
+              title="รวมรูปสกินเป็นกลุ่ม — ลากย้ายพร้อมกัน"
+            >
+              <Group size={16} />
+              <span>จัดกลุ่ม</span>
+            </button>
+          )}
+          {isMoba && imageLayerCount >= 2 && (
+            <motion.div className="arena-grid-arrange" ref={gridMenuRef}>
+              <button
+                type="button"
+                className={`arena-tool-btn arena-tool-btn--label${gridMenuOpen ? ' is-on' : ''}`}
+                onClick={() => setGridMenuOpen((v) => !v)}
+                title="จัดรูปเป็นกริดเท่ากัน"
+                aria-expanded={gridMenuOpen}
+                aria-haspopup="menu"
+              >
+                <LayoutGrid size={16} />
+                <span>จัดกริด</span>
+              </button>
+              {gridMenuOpen && (
+                <div className="arena-grid-arrange__menu" role="menu">
+                  <p className="arena-grid-arrange__lead">
+                    {imageLayerCount} รูปบนแคนวาส — เลือกรูปแบบ
+                  </p>
+                  {gridFormatOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="menuitem"
+                      className="arena-grid-arrange__opt"
+                      onClick={() => arrangeImageLayersInGrid(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
           {onViewZoomChange && (
             <>
               <button
@@ -865,15 +1129,22 @@ export function BreakoutComposeEditor({
             onBackgroundUrl={setBackground}
             onDropImageUrl={isMoba ? addImageLayer : undefined}
             showPreviewWatermark={showPreviewWatermark}
+            highlightGroupId={selectedGroupId}
           />
         </main>
 
         <aside className="arena-props">
           <BreakoutComposeInspector
             layer={selectedLayer}
+            groupMemberCount={
+              selectedGroupId
+                ? normalizedDoc.layers.filter((l) => l.groupId === selectedGroupId).length
+                : 0
+            }
             onPatch={(patch) => selectedLayerId && patchLayer(selectedLayerId, patch)}
             onDuplicate={() => selectedLayerId && duplicateLayer(selectedLayerId)}
             onDelete={() => selectedLayerId && deleteLayer(selectedLayerId)}
+            onUngroup={selectedGroupId ? ungroupSelectedLayer : undefined}
             onFitToImage={
               selectedLayer &&
               (selectedLayer.kind === 'item' ||

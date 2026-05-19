@@ -125,7 +125,7 @@ export function ComposeLayerNode({
   return (
     <div
       ref={rootRef}
-      className={`arena-layer ab-compose-layer ab-compose-layer--${layer.kind}${selected ? ' is-selected' : ''}${layer.locked ? ' is-locked' : ''}${!layer.visible ? ' is-hidden' : ''}`}
+      className={`arena-layer ab-compose-layer ab-compose-layer--${layer.kind}${selected ? ' is-selected' : ''}${layer.groupId ? ' is-grouped' : ''}${layer.locked ? ' is-locked' : ''}${!layer.visible ? ' is-hidden' : ''}`}
       style={{
         left: `${x}%`,
         top: `${y}%`,

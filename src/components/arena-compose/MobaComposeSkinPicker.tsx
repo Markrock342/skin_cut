@@ -12,6 +12,9 @@ interface MobaComposeSkinPickerProps {
   gameId: 'rov' | 'mlbb';
   carrySkins?: Skin[];
   onAddSkin: (imageUrl: string, label: string) => void;
+  /** เพิ่มสกินที่เลือกจากกริดทั้งหมดแล้วจัดกริดอัตโนมัติ */
+  onAddAllSkins?: () => void;
+  composeGroupByHero?: boolean;
 }
 
 function heroThumbUrl(heroId: string): string {
@@ -88,6 +91,8 @@ export function MobaComposeSkinPicker({
   gameId,
   carrySkins = [],
   onAddSkin,
+  onAddAllSkins,
+  composeGroupByHero = false,
 }: MobaComposeSkinPickerProps) {
   const heroes = useMemo(() => getHeroesByGame(gameId), [gameId]);
   const [heroId, setHeroId] = useState('');
@@ -136,7 +141,12 @@ export function MobaComposeSkinPicker({
       </p>
 
       {carrySkins.length > 0 && (
-        <MobaComposeSkinStrip skins={carrySkins} onAddSkin={onAddSkin} />
+        <MobaComposeSkinStrip
+          skins={carrySkins}
+          onAddSkin={onAddSkin}
+          onAddAllSkins={onAddAllSkins}
+          groupByHero={composeGroupByHero}
+        />
       )}
 
       <input

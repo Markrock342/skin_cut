@@ -1175,9 +1175,33 @@ select {
 /* —— Studio mode tabs (กริด vs Canva) —— */
 .studio-mode-tabs {
   display: flex;
-  gap: 8px;
-  margin: 12px 0 16px;
+  gap: 10px;
+  margin: 12px 0 8px;
   flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.studio-mode-tabs__hint {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.studio-mode-tabs__hint-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fcd34d;
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.studio-mode-tabs__hint-link:hover {
+  color: #fde68a;
 }
 
 .studio-mode-tab {
@@ -1192,7 +1216,12 @@ select {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
 }
 
 .studio-mode-tab:hover {
@@ -1206,13 +1235,69 @@ select {
   color: #e9d5ff;
 }
 
+.studio-mode-tab--canva {
+  padding: 10px 16px 10px 14px;
+  border-color: rgba(251, 191, 36, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.2) 0%,
+    rgba(245, 158, 11, 0.14) 100%
+  );
+  color: #fef3c7;
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.15),
+    0 4px 20px rgba(124, 58, 237, 0.2);
+}
+
+.studio-mode-tab--canva svg {
+  flex-shrink: 0;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
+}
+
+.studio-mode-tab--canva:hover {
+  border-color: rgba(252, 211, 77, 0.9);
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.32) 0%,
+    rgba(245, 158, 11, 0.22) 100%
+  );
+  color: #fffbeb;
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.35),
+    0 8px 28px rgba(124, 58, 237, 0.28);
+}
+
+.studio-mode-tab__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.studio-mode-tab__main small {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(253, 224, 71, 0.92);
+  letter-spacing: 0.01em;
+}
+
 .studio-mode-tab__price {
   font-size: 0.72rem;
-  font-weight: 500;
-  opacity: 0.85;
-  padding: 2px 8px;
+  font-weight: 600;
+  padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fde68a;
+  white-space: nowrap;
+}
+
+.studio-mode-tab--canva .studio-mode-tab__price {
+  background: rgba(120, 53, 15, 0.45);
+  border: 1px solid rgba(251, 191, 36, 0.25);
 }
 
 .moba-compose-flow {
@@ -1222,6 +1307,31 @@ select {
 
 .moba-compose-flow .back-link {
   margin-bottom: 12px;
+}
+
+button.back-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.back-link--studio {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(255, 255, 255, 0.07);
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.back-link--studio:hover {
+  color: #e9d5ff;
+  border-color: rgba(167, 139, 250, 0.55);
+  background: rgba(124, 58, 237, 0.14);
 }
 
 .admin-panel__title {
@@ -4194,6 +4304,84 @@ select {
   font-weight: 600;
 }
 
+.arena-tool-btn--label {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.arena-grid-arrange {
+  position: relative;
+}
+
+.arena-grid-arrange__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 168px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.arena-grid-arrange__lead {
+  margin: 0 0 6px;
+  padding: 0 8px 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.arena-grid-arrange__opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.arena-grid-arrange__opt small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.arena-grid-arrange__opt:hover {
+  background: rgba(124, 58, 237, 0.18);
+  color: #e9d5ff;
+}
+
+.arena-moba-add-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+
+.arena-moba-add-all-btn__hint {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .arena-toast {
   margin: 0;
   padding: 8px 16px;
@@ -5559,6 +5747,78 @@ select {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.ab-layer-row--nested {
+  margin-left: 12px;
+  border-left: 2px solid rgba(124, 58, 237, 0.25);
+}
+
+.ab-layer-group {
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.ab-layer-group.is-selected {
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.ab-layer-group__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.ab-layer-group__toggle {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ab-layer-group__label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ab-layer-group__label:hover {
+  background: rgba(124, 58, 237, 0.12);
+}
+
+.ab-layer-group__children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+.ab-compose-layer.is-grouped.is-selected {
+  outline: 1px dashed rgba(96, 165, 250, 0.55);
+  outline-offset: 2px;
+}
+
+.ab-inspector-ungroup {
+  width: 100%;
+  margin-bottom: 8px;
+  justify-content: center;
+}
+
 .ab-layer-row__icon.danger:hover {
   color: #f87171;
 }
@@ -5821,6 +6081,13 @@ select {
   flex-direction: column;
   gap: 10px;
   margin-top: 20px;
+}
+
+.studio-compose-handoff-btn {
+  width: 100%;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
 }
 
 .studio-format-hint {

@@ -1,4 +1,4 @@
-import { Copy, Crop, Maximize2, RotateCw, Trash2 } from 'lucide-react';
+import { Copy, Crop, Maximize2, RotateCw, Trash2, Ungroup } from 'lucide-react';
 import type { ArenaComposeLayer, ArenaTextStyle } from '../../data/arena-breakout/compose';
 import {
   ARENA_TEXT_PRESETS,
@@ -8,11 +8,13 @@ import { clampTransform, round2 } from '../../lib/arena-compose-utils';
 
 interface BreakoutComposeInspectorProps {
   layer: ArenaComposeLayer | null;
+  groupMemberCount?: number;
   onPatch: (patch: Partial<ArenaComposeLayer>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onFitToImage?: () => void;
   onTrimTransparent?: () => void;
+  onUngroup?: () => void;
 }
 
 function NumField({
@@ -126,11 +128,13 @@ function TextStyleSection({
 
 export function BreakoutComposeInspector({
   layer,
+  groupMemberCount = 0,
   onPatch,
   onDuplicate,
   onDelete,
   onFitToImage,
   onTrimTransparent,
+  onUngroup,
 }: BreakoutComposeInspectorProps) {
   if (!layer) {
     return (
@@ -157,7 +161,10 @@ export function BreakoutComposeInspector({
   return (
     <section className="ab-inspector">
       <h3>{layer.label}</h3>
-      <p className="ab-inspector__kind">{layer.kind}</p>
+      <p className="ab-inspector__kind">
+        {layer.kind}
+        {groupMemberCount >= 2 ? ` · กลุ่ม ${groupMemberCount} รูป` : ''}
+      </p>
 
       {isText && (
         <label className="ab-inspector-field ab-inspector-field--full">
@@ -239,6 +246,13 @@ export function BreakoutComposeInspector({
           style={layer.style ?? ARENA_TEXT_PRESETS.plain}
           onStyleChange={patchStyle}
         />
+      )}
+
+      {onUngroup && groupMemberCount >= 2 && (
+        <button type="button" className="btn-ghost ab-inspector-ungroup" onClick={onUngroup}>
+          <Ungroup size={14} />
+          แยกกลุ่ม ({groupMemberCount} รูป)
+        </button>
       )}
 
       <div className="ab-inspector-actions">

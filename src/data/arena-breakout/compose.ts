@@ -44,6 +44,11 @@ export interface ArenaComposeLayer {
   zIndex: number;
   visible: boolean;
   locked: boolean;
+  /** เลเยอร์ในกลุ่มเดียวกัน — ลากย้ายพร้อมกัน */
+  groupId?: string;
+  /** อ้างอิงสกินจากคลัง (โหมด MOBA) */
+  skinId?: string;
+  heroId?: string;
   itemId?: string;
   src?: string;
   text?: string;
