@@ -9,23 +9,22 @@ import {
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Skin } from '../data/types';
+import { parseGridFormat } from '../lib/grid-formats';
 import { SkinCard } from './SkinCard';
 import { useStudio } from '../context/StudioContext';
 
 function SortableSkinItem({
   skin,
   rank,
-  width,
 }: {
   skin: Skin;
   rank: number;
-  width: number;
 }) {
   const { removeSkin } = useStudio();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -37,26 +36,39 @@ function SortableSkinItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      className="selected-strip__cell"
+      {...attributes}
+      {...listeners}
+      layout
+    >
       <SkinCard
         skin={skin}
         rank={rank}
-        width={width}
+        width={100}
         draggable
         isDragging={isDragging}
         onRemove={() => removeSkin(skin.id)}
         layoutId={`selected-${skin.id}`}
       />
-    </div>
+    </motion.div>
   );
 }
 
-export function SortableSelectedStrip() {
+interface SortableSelectedStripProps {
+  /** รูปแบบกริด เช่น 3x1 — ใช้จัดคอลัมน์แบบ SortSkin */
+  gridFormat?: string;
+}
+
+export function SortableSelectedStrip({ gridFormat = '4x1' }: SortableSelectedStripProps) {
   const { selectedSkins, viewSize, reorderSkins } = useStudio();
-  const cardWidth = 72 + viewSize * 12;
+  const { cols } = parseGridFormat(gridFormat);
+  const cardMin = 72 + viewSize * 12;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor),
   );
 
@@ -75,21 +87,30 @@ export function SortableSelectedStrip() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        ยังไม่มีสกินที่เลือก — คลิกจากกริดด้านล่าง
+        ยังไม่มีสกินที่เลือก — คลิกจากกริดด้านบน
       </motion.div>
     );
   }
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={selectedSkins.map((s) => s.id)} strategy={horizontalListSortingStrategy}>
-        <div className="selected-strip">
+      <SortableContext items={selectedSkins.map((s) => s.id)} strategy={rectSortingStrategy}>
+        <motion.div
+          className="selected-strip selected-strip--grid"
+          style={
+            {
+              '--grid-cols': String(cols),
+              '--card-min': `${cardMin}px`,
+            } as React.CSSProperties
+          }
+          layout
+        >
           <AnimatePresence mode="popLayout">
             {selectedSkins.map((skin, i) => (
-              <SortableSkinItem key={skin.id} skin={skin} rank={i + 1} width={cardWidth} />
+              <SortableSkinItem key={skin.id} skin={skin} rank={i + 1} />
             ))}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </SortableContext>
     </DndContext>
   );

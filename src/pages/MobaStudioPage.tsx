@@ -734,32 +734,51 @@ export function MobaStudioPage() {
           </section>
 
           <section className="panel selected-panel">
-            <div className="panel-head selected-panel-head">
-              <div>
-                <h2>สกินที่เลือก ({selectedSkins.length})</h2>
-                <p style={{ marginTop: 4, fontSize: '0.85rem' }}>
-                  {selectedSkins.length > 0 ? 'ลากการ์ดเพื่อเรียงอันดับ — คลิก X เพื่อลบ' : 'เลือกสกินจากกริดด้านบนเพื่อเริ่มจัด'}
-                </p>
-              </div>
-              <div className="view-slider">
+            <motion.div className="selected-panel-head">
+              <motion.div className="selected-panel-head__row">
+                <motion.div className="selected-panel-head__title">
+                  <h2>สกินที่เลือก ({selectedSkins.length} สกิน)</h2>
+                  {uniqueHeroCount > 1 ? (
+                    <p className="selected-panel-head__meta">รวม {uniqueHeroCount} ฮีโร่</p>
+                  ) : selectedHeroCount > 0 ? (
+                    <p className="selected-panel-head__meta">
+                      {selectedHeroCount} ชิ้นจากฮีโร่นี้
+                    </p>
+                  ) : null}
+                </motion.div>
+                <button
+                  type="button"
+                  className="btn-secondary selected-panel-clear"
+                  onClick={() => {
+                    clearSkins();
+                    setShowPreviewModal(false);
+                    setDetectRows([]);
+                    setStatusText('ล้างสกินที่เลือกแล้ว');
+                  }}
+                >
+                  <X size={16} />
+                  ล้าง
+                </button>
+              </motion.div>
+              <p className="selected-panel-view-hint">
+                ปรับขนาดมุมมองมีผลกับการจัดเรียงเท่านั้น ไม่มีผลกับภาพสุดท้าย
+              </p>
+              <motion.div className="view-slider view-slider--full">
                 <label htmlFor="view-size">ปรับขนาดมุมมอง: {viewSize}</label>
-                <input id="view-size" type="range" min={3} max={8} value={viewSize} onChange={(e) => setViewSize(Number(e.target.value))} />
-              </div>
-              <button type="button" className="btn-secondary" style={{ width: 'auto', minHeight: 40 }} onClick={() => { clearSkins(); setShowPreviewModal(false); setDetectRows([]); setStatusText('ล้างสกินที่เลือกแล้ว'); }}>
-                <X size={16} />
-                ล้าง
-              </button>
-            </div>
-
-            <div className="studio-preview-shell">
-              <div className="studio-preview-title">
-                สกินที่เลือก{selectedSkins.length > 0 ? ` (${selectedSkins.length})` : ''}
-                {uniqueHeroCount > 1 ? ` · รวม ${uniqueHeroCount} ฮีโร่` : ''}
-                {selectedHeroCount > 0 && uniqueHeroCount <= 1 ? ` · ${selectedHeroCount} ชิ้นจากฮีโร่นี้` : ''}
-              </div>
-              {statusText && <p className="studio-status">{statusText}</p>}
-              <SortableSelectedStrip />
-            </div>
+                <input
+                  id="view-size"
+                  type="range"
+                  min={3}
+                  max={8}
+                  value={viewSize}
+                  onChange={(e) => setViewSize(Number(e.target.value))}
+                />
+              </motion.div>
+              {statusText ? (
+                <p className="studio-status studio-status--inline">{statusText}</p>
+              ) : null}
+              <SortableSelectedStrip gridFormat={gridFormat} />
+            </motion.div>
           </section>
 
           <section className="panel">
