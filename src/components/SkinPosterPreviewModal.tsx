@@ -56,7 +56,7 @@ export function SkinPosterPreviewModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalA11y({ open, onClose, dialogRef });
   const gridLabel = formatGridLabel(gridFormat);
-  const { cols } = parseGridFormat(gridFormat);
+  const { cols, rows } = parseGridFormat(gridFormat);
   const cost = calcStudioCost(skins.length);
   const costLabel = formatStudioCostForSkins(skins.length);
   const isLoggedIn = userCoins != null;
@@ -92,7 +92,7 @@ export function SkinPosterPreviewModal({
             exit={{ opacity: 0 }}
             onClick={onClose}
           >
-            <motion.div
+              <motion.div
               ref={dialogRef}
               className="preview-modal"
               role="dialog"
@@ -114,7 +114,12 @@ export function SkinPosterPreviewModal({
                 </button>
               </div>
 
-              <div className="preview-modal-frame" data-grid-cols={cols}>
+              <motion.div
+                className="preview-modal-frame"
+                data-grid-cols={cols}
+                data-grid-rows={rows}
+                style={{ '--preview-rows': rows, '--preview-cols': cols } as React.CSSProperties}
+              >
                 <span className="preview-modal-badge preview-modal-badge--live">PREVIEW</span>
                 <span className="preview-modal-badge preview-modal-badge--grid">{gridLabel}</span>
 
@@ -139,7 +144,7 @@ export function SkinPosterPreviewModal({
                   <strong>ตัวอย่างภาพ</strong>
                   <span>ซื้อเพื่อดาวน์โหลดภาพเต็ม</span>
                 </div>
-              </div>
+              </motion.div>
 
               {/* สำหรับ export — ไม่เบลอ */}
               <div className="preview-modal-export-source" aria-hidden>

@@ -60,6 +60,11 @@ import {
 import { SUPABASE_SETUP_MESSAGE } from '../lib/supabase';
 import { compareSkinsByRarity } from '../lib/skin-rarity';
 import { preloadSkinImages } from '../lib/preload-skin-images';
+import { MobaComposeStudio } from '../components/arena-compose/MobaComposeStudio';
+import { fetchStudioPricing } from '../lib/studio-pricing-public';
+import { formatComposePosterCost } from '../config/compose-pricing';
+
+type StudioMode = 'grid' | 'compose';
 
 type DetectRowState = 'ready' | 'added' | 'in-list' | 'unmatched';
 
@@ -118,6 +123,8 @@ export function MobaStudioPage() {
   const [showWatermark, setShowWatermark] = useState(true);
   const [shopName, setShopName] = useState(() => loadShopName());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [studioMode, setStudioMode] = useState<StudioMode>('grid');
+  const [composeCost, setComposeCost] = useState(5);
   const fileRef = useRef<HTMLInputElement>(null);
   const detectDialogRef = useRef<HTMLDivElement>(null);
 
@@ -137,7 +144,12 @@ export function MobaStudioPage() {
     setSearch('');
     setFilterMode('hero');
     setSidebarOpen(false);
+    setStudioMode('grid');
   }, [gid]);
+
+  useEffect(() => {
+    void fetchStudioPricing().then((p) => setComposeCost(p.composePosterCost));
+  }, []);
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -477,12 +489,45 @@ export function MobaStudioPage() {
     dialogRef: detectDialogRef,
   });
 
+  if (studioMode === 'compose') {
+    return (
+      <MobaComposeStudio
+        gameId={gid}
+        carrySkins={selectedSkins}
+        onExit={() => setStudioMode('grid')}
+      />
+    );
+  }
+
+  const composeCostLabel = formatComposePosterCost(composeCost);
+
   return (
     <motion.div>
       <Link to="/games" className="back-link">
         <ArrowLeft size={16} />
         ย้อนกลับ
       </Link>
+
+      <div className="studio-mode-tabs" role="tablist" aria-label="โหมดสตูดิโอ">
+        <button
+          type="button"
+          role="tab"
+          aria-selected
+          className="studio-mode-tab is-on"
+        >
+          กริดสกิน
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          className="studio-mode-tab"
+          onClick={() => setStudioMode('compose')}
+        >
+          ตกแต่ง Canva
+          <span className="studio-mode-tab__price">{composeCostLabel}/การ์ด</span>
+        </button>
+      </div>
 
       <motion.div className={`studio-layout${sidebarOpen ? ' studio-layout--sidebar-open' : ''}`}>
         <button

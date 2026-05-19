@@ -3,52 +3,46 @@ import { motion } from 'framer-motion';
 import { fetchSiteSettings, updateSiteSetting } from '../../lib/admin-api';
 import { fadeUp } from '../../lib/motion';
 
+function parseCoinSetting(value: unknown, fallback: number) {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
 export function AdminSettingsPage() {
   const [maintenance, setMaintenance] = useState(false);
   const [bonusCoins, setBonusCoins] = useState(0);
   const [announcement, setAnnouncement] = useState('');
+  const [arenaPosterCost, setArenaPosterCost] = useState(3);
+  const [composePosterCost, setComposePosterCost] = useState(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const applySettings = useCallback((s: Awaited<ReturnType<typeof fetchSiteSettings>>) => {
+    setMaintenance(Boolean(s.maintenance_mode));
+    setBonusCoins(Number(s.signup_bonus_coins) ?? 0);
+    setAnnouncement(String(s.announcement ?? ''));
+    setArenaPosterCost(parseCoinSetting(s.arena_poster_cost, 3));
+    setComposePosterCost(parseCoinSetting(s.compose_poster_cost, 5));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const s = await fetchSiteSettings();
-      setMaintenance(Boolean(s.maintenance_mode));
-      setBonusCoins(Number(s.signup_bonus_coins) ?? 0);
-      setAnnouncement(String(s.announcement ?? ''));
+      applySettings(s);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applySettings]);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const s = await fetchSiteSettings();
-        if (!cancelled) {
-          setMaintenance(Boolean(s.maintenance_mode));
-          setBonusCoins(Number(s.signup_bonus_coins) ?? 0);
-          setAnnouncement(String(s.announcement ?? ''));
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'โหลดไม่สำเร็จ');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void load();
+  }, [load]);
 
   async function saveAll() {
     setSaving(true);
@@ -56,6 +50,8 @@ export function AdminSettingsPage() {
       await updateSiteSetting('maintenance_mode', maintenance);
       await updateSiteSetting('signup_bonus_coins', bonusCoins);
       await updateSiteSetting('announcement', announcement);
+      await updateSiteSetting('arena_poster_cost', arenaPosterCost);
+      await updateSiteSetting('compose_poster_cost', composePosterCost);
       setSaved(true);
       await load();
       setTimeout(() => setSaved(false), 2000);
@@ -106,6 +102,32 @@ export function AdminSettingsPage() {
                 onChange={(e) => setBonusCoins(Math.max(0, parseInt(e.target.value, 10) || 0))}
               />
               <span className="admin-hint">สมาชิกใหม่ได้คอยน์ตามค่านี้ (0 = ไม่มีโบนัสฟรี)</span>
+            </label>
+          </div>
+
+          <div className="admin-panel">
+            <h3 className="admin-panel__title">ราคาสตูดิโอ (คอยน์)</h3>
+            <label className="field">
+              <span>Arena Breakout — โหมด Canva / การ์ด</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={arenaPosterCost}
+                onChange={(e) => setArenaPosterCost(Math.max(0, Number(e.target.value) || 0))}
+              />
+              <span className="admin-hint">หักต่อการดาวน์โหลด PNG 1 ใบ</span>
+            </label>
+            <label className="field">
+              <span>ROV / MLBB — โหมดตกแต่ง Canva</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={composePosterCost}
+                onChange={(e) => setComposePosterCost(Math.max(0, Number(e.target.value) || 0))}
+              />
+              <span className="admin-hint">หักต่อการดาวน์โหลด PNG 1 ใบ (กริดสกินยังคิดแยกตามจำนวนสกิน)</span>
             </label>
           </div>
 

@@ -5,7 +5,7 @@ import { getHero } from '../data/catalog';
 import { groupSkinsByHero, countUniqueHeroes } from '../lib/poster-groups';
 import { BrandLogo } from './BrandLogo';
 import { POSTER_TEMPLATE_LABELS } from '../lib/poster-labels';
-import { posterSkinObjectPosition } from '../lib/poster-game-style';
+import { posterSkinImageScale, posterSkinObjectPosition } from '../lib/poster-game-style';
 import { resolveSkinImageDisplayUrl } from '../lib/skin-image-url';
 import { ROV_PROFILE_FRAMES_ENABLED } from '../config/features';
 import { SkinPosterFrameOverlay } from './SkinPosterFrameOverlay';
@@ -77,7 +77,13 @@ function SkinPosterCell({
             alt={skin.name}
             loading="eager"
             decoding="async"
-            style={{ objectPosition: posterSkinObjectPosition(gameId) }}
+            style={{
+              objectPosition: posterSkinObjectPosition(gameId, strip && stripExportCanvas),
+              transform:
+                strip && stripExportCanvas
+                  ? `scale(${posterSkinImageScale(gameId, true)})`
+                  : undefined,
+            }}
             onError={() => setImgFailed(true)}
           />
         ) : null}

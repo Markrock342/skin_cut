@@ -54,11 +54,21 @@ async function inlineProxiedImages(node: HTMLElement) {
   await waitForPosterImages(node);
 }
 
+function resolveExportScale(node: HTMLElement) {
+  const targetW = Number(node.dataset.exportW);
+  const layoutW = node.offsetWidth || node.getBoundingClientRect().width;
+  if (targetW > 0 && layoutW > 0) {
+    return Math.max(1, targetW / layoutW);
+  }
+  return 2;
+}
+
 export async function renderNodeToCanvas(node: HTMLElement) {
   await inlineProxiedImages(node);
   const html2canvas = await getHtml2Canvas();
+  const scale = resolveExportScale(node);
   const base = {
-    scale: 2,
+    scale,
     backgroundColor: null,
     logging: false,
   } as const;

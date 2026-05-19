@@ -155,6 +155,8 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
     maintenance_mode: false,
     signup_bonus_coins: 0,
     announcement: '',
+    arena_poster_cost: 3,
+    compose_poster_cost: 5,
   };
 
   for (const row of data ?? []) {

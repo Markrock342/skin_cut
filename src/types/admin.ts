@@ -41,6 +41,11 @@ export type ContactMessage = {
   updatedAt: string;
 };
 
-export type SiteSettingKey = 'maintenance_mode' | 'signup_bonus_coins' | 'announcement';
+export type SiteSettingKey =
+  | 'maintenance_mode'
+  | 'signup_bonus_coins'
+  | 'announcement'
+  | 'arena_poster_cost'
+  | 'compose_poster_cost';
 
 export type SiteSettings = Record<SiteSettingKey, unknown>;

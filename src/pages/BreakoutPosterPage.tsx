@@ -1,623 +1,374 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  BookOpen,
-  Download,
-  ExternalLink,
-  ImageIcon,
-  Layers,
-  Scissors,
-  Upload,
-} from 'lucide-react';
-import { ARENA_TEMPLATES } from '../data/arena-breakout/templates';
-import { BG_REMOVAL_TOOLS } from '../data/arena-breakout/external-tools';
-import type { BreakoutEditorState, BreakoutItemCategory } from '../data/types';
-import { BreakoutTemplateCanvas } from '../components/BreakoutTemplateCanvas';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import { BreakoutGuide } from '../components/BreakoutGuide';
 import { BreakoutPrepareStep } from '../components/BreakoutPrepareStep';
-import { ImageCropModal } from '../components/ImageCropModal';
+import { BreakoutComposeEditor } from '../components/arena-compose/BreakoutComposeEditor';
 import {
-  ARENA_CATEGORY_LABELS,
-  ARENA_ITEMS_BY_CATEGORY,
-  getArenaItemsByCategory,
-} from '../lib/arena-items';
-import { readFileAsDataUrl } from '../lib/crop-image';
+  BreakoutStudioSetup,
+  type ArenaCanvasSelection,
+} from '../components/arena-compose/BreakoutStudioSetup';
+import {
+  type ArenaComposeDocument,
+  createComposeDocument,
+  deriveAspectFamily,
+  documentHasContent,
+  getDocumentCanvasSpec,
+  layersFromPreparedAssets,
+  mergePreparedAssetsIntoDocument,
+  normalizeComposeDocument,
+  PREPARED_CHARACTER_LABEL,
+  PREPARED_STATS_LABEL,
+} from '../data/arena-breakout/compose';
+import { findCanvasTemplate } from '../data/arena-breakout/canvas-templates';
+import { useComposeHistory } from '../hooks/useComposeHistory';
+import type { BreakoutItemCategory } from '../data/types';
+import {
+  ARENA_POSTER_COST,
+  ARENA_PRICING_HINT,
+  formatArenaPosterCost,
+} from '../config/arena-pricing';
+import { useAuth } from '../context/AuthContext';
 import { exportNodeToPng } from '../lib/export-image';
-import { springSnappy } from '../lib/motion';
+import {
+  chargeArenaPoster,
+  formatStudioChargeError,
+  InsufficientCoinsError,
+  StudioAuthRequiredError,
+} from '../lib/studio-api';
+import { SUPABASE_SETUP_MESSAGE } from '../lib/supabase';
+import {
+  clearComposeDraft,
+  formatDraftSavedAt,
+  loadComposeDraft,
+  saveComposeDraft,
+} from '../lib/arena-compose-draft';
 
 type FlowStep = 'guide' | 'prepare' | 'pick' | 'edit';
 
-const ARENA_TAB_ORDER: BreakoutItemCategory[] = [
-  'bgProfile',
-  'bgCharacter',
-  'knife',
-  'gun',
-  'outfit',
-  'gloves',
-  'profileFrame',
-  'title',
-];
+const ARENA_STUDIO_PATH = '/studio/arena-breakout';
+const arenaCostLabel = formatArenaPosterCost();
 
-const DEFAULT_STATE: BreakoutEditorState = {
-  templateFamily: 'landscape',
-  variantId: 1,
-  money: '5,337,322',
-  price: '1,690 ฿',
-  slots: {},
-};
-
-const FLOW_LABELS: Record<FlowStep, string> = {
+const FLOW_LABELS: Record<'guide' | 'pick', string> = {
   guide: 'คู่มือ',
-  prepare: 'เตรียมรูป',
-  pick: 'เทมเพลต',
-  edit: 'จัดภาพ',
+  pick: 'ขนาดผลงาน',
 };
 
-function withHeroSlots(
-  slots: Record<string, string>,
-  profile?: string,
-  character?: string,
-): Record<string, string> {
-  const next = { ...slots };
-  if (profile) next.profile = profile;
-  if (character) next.character = character;
-  return next;
+const DEFAULT_CANVAS = findCanvasTemplate('fb-post')!;
+
+function selectionFromTemplate(id: string): ArenaCanvasSelection {
+  const t = findCanvasTemplate(id) ?? DEFAULT_CANVAS;
+  return {
+    width: t.width,
+    height: t.height,
+    label: `${t.platformLabel} · ${t.name}`,
+    templateId: t.id,
+  };
 }
 
 export function BreakoutPosterPage() {
+  const navigate = useNavigate();
+  const { user, refresh, patchCoins, authConfigured } = useAuth();
   const posterRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const profileInputRef = useRef<HTMLInputElement>(null);
-  const characterInputRef = useRef<HTMLInputElement>(null);
 
   const [flow, setFlow] = useState<FlowStep>('guide');
-  const [state, setState] = useState<BreakoutEditorState>(DEFAULT_STATE);
+  const {
+    present: doc,
+    setPresent: setDoc,
+    undo,
+    redo,
+    reset: resetDoc,
+    beginTransaction,
+    commitTransaction,
+    canUndo,
+    canRedo,
+  } = useComposeHistory<ArenaComposeDocument>(
+    createComposeDocument(selectionFromTemplate(DEFAULT_CANVAS.id)),
+  );
+
+  const [canvasSelection, setCanvasSelection] = useState<ArenaCanvasSelection>(() =>
+    selectionFromTemplate(DEFAULT_CANVAS.id),
+  );
+
+  const onDocumentChange = useCallback(
+    (next: ArenaComposeDocument, skipHistory?: boolean) => {
+      setDoc(normalizeComposeDocument(next), skipHistory);
+    },
+    [setDoc],
+  );
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('gun');
+  const [showGrid, setShowGrid] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [statusText, setStatusText] = useState('');
+  const [exportError, setExportError] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | undefined>();
   const [characterImage, setCharacterImage] = useState<string | undefined>();
-  const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [pickerCategory, setPickerCategory] = useState<BreakoutItemCategory>('bgProfile');
-  const [showSlotFrames, setShowSlotFrames] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<'profile' | 'inline'>('profile');
+  const [viewZoom, setViewZoom] = useState(1);
+  const [hasDraft, setHasDraft] = useState(() => Boolean(loadComposeDraft('arena-breakout')));
 
-  const template = useMemo(
-    () => ARENA_TEMPLATES.find((t) => t.id === state.templateFamily)!,
-    [state.templateFamily],
-  );
+  useEffect(() => {
+    if (flow === 'edit') setHasDraft(Boolean(loadComposeDraft('arena-breakout')));
+  }, [flow, doc]);
 
-  const activeSlotDef = template.slots.find((s) => s.id === activeSlot);
+  const exportLabel =
+    authConfigured && user
+      ? `ดาวน์โหลด PNG (${arenaCostLabel})`
+      : 'เข้าสู่ระบบ';
 
-  const editorState = useMemo(
-    () => ({
-      ...state,
-      slots: withHeroSlots(state.slots, profileImage, characterImage),
-    }),
-    [state, profileImage, characterImage],
-  );
+  const coinsHint =
+    authConfigured && user
+      ? `${user.coins.toFixed(2)} คอยน์ · ${ARENA_PRICING_HINT}`
+      : undefined;
 
-  const applyPreparedToSlots = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      slots: withHeroSlots(s.slots, profileImage, characterImage),
-    }));
-  }, [profileImage, characterImage]);
-
-  const goToEdit = () => {
-    applyPreparedToSlots();
+  const openStudio = (sel: ArenaCanvasSelection) => {
+    const aspect = deriveAspectFamily(sel.width, sel.height);
+    let next = createComposeDocument({
+      width: sel.width,
+      height: sel.height,
+      label: sel.label,
+      templateId: sel.templateId,
+    });
+    const prepared = layersFromPreparedAssets(aspect, {
+      profileImage,
+      characterImage,
+    });
+    if (prepared.length > 0) {
+      next = { ...next, layers: [...next.layers, ...prepared] };
+    }
+    resetDoc(normalizeComposeDocument(next));
     setFlow('edit');
   };
 
-  const assignItem = (itemId: string) => {
-    if (!activeSlot) return;
-    if (activeSlot === 'profile') {
-      setProfileImage(undefined);
-    }
-    if (activeSlot === 'character') {
-      setCharacterImage(undefined);
-    }
-    setState((s) => ({
-      ...s,
-      slots: { ...s.slots, [activeSlot]: itemId },
-    }));
-    setActiveSlot(null);
-  };
-
-  const handleSlotClick = useCallback(
-    (slotId: string) => {
-      const def = template.slots.find((s) => s.id === slotId);
-      if (!def) return;
-
-      if (def.category === 'text-money' || def.category === 'text-price') {
-        setActiveSlot(slotId);
-        return;
-      }
-
-      setActiveSlot(slotId);
-      if (def.category !== 'gloves' && def.category in ARENA_ITEMS_BY_CATEGORY) {
-        setPickerCategory(def.category as BreakoutItemCategory);
-      }
+  const applyPreparedToDoc = useCallback(
+    (assets: { profileImage?: string; characterImage?: string }) => {
+      const nextProfile =
+        'profileImage' in assets ? assets.profileImage : profileImage;
+      const nextCharacter =
+        'characterImage' in assets ? assets.characterImage : characterImage;
+      setProfileImage(nextProfile);
+      setCharacterImage(nextCharacter);
+      onDocumentChange(
+        mergePreparedAssetsIntoDocument(doc, {
+          profileImage: nextProfile,
+          characterImage: nextCharacter,
+        }),
+      );
     },
-    [template.slots],
+    [characterImage, doc, onDocumentChange, profileImage],
   );
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeSlot) return;
+  const preparedFromDoc = useCallback(() => {
+    const stats = doc.layers.find((l) => l.label === PREPARED_STATS_LABEL)?.src;
+    const character = doc.layers.find((l) => l.label === PREPARED_CHARACTER_LABEL)?.src;
+    return { profileImage: stats, characterImage: character };
+  }, [doc.layers]);
 
-    if (activeSlot === 'profile') {
-      void readFileAsDataUrl(file).then((url) => {
-        setCropTarget('inline');
-        setCropSrc(url);
-      });
-    } else if (activeSlot === 'character') {
-      void readFileAsDataUrl(file).then((url) => {
-        setCharacterImage(url);
-        setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
-      });
+  const handleSaveDraft = useCallback(() => {
+    const result = saveComposeDraft({
+      studioId: 'arena-breakout',
+      document: doc,
+      canvasSelection,
+      profileImage,
+      characterImage,
+    });
+    if (result.ok) {
+      setHasDraft(true);
+      setExportError(null);
+      setStatusText(`บันทึกร่างแล้ว · ${formatDraftSavedAt(result.savedAt)}`);
     } else {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const url = reader.result as string;
-        setState((s) => ({
-          ...s,
-          slots: { ...s.slots, [activeSlot]: url },
-        }));
-      };
-      reader.readAsDataURL(file);
+      setStatusText('');
+      setExportError(result.message);
     }
-    e.target.value = '';
-  };
+  }, [canvasSelection, characterImage, doc, profileImage]);
 
-  const handleCropConfirm = (dataUrl: string) => {
-    if (cropTarget === 'profile' || activeSlot === 'profile') {
-      setProfileImage(dataUrl);
-      setState((s) => ({ ...s, slots: { ...s.slots, profile: dataUrl } }));
+  const handleLoadDraft = useCallback(() => {
+    const draft = loadComposeDraft('arena-breakout');
+    if (!draft) {
+      setHasDraft(false);
+      setStatusText('');
+      setExportError('ไม่พบร่างที่บันทึกไว้');
+      return;
     }
-    setCropSrc(null);
-  };
-
-  const openProfileCrop = async (file: File) => {
-    const url = await readFileAsDataUrl(file);
-    setCropTarget('profile');
-    setCropSrc(url);
-  };
-
-  const canUploadSlot =
-    activeSlot === 'profile' || activeSlot === 'character';
+    resetDoc(draft.document);
+    setCanvasSelection(draft.canvasSelection);
+    setProfileImage(draft.profileImage);
+    setCharacterImage(draft.characterImage);
+    setSelectedLayerId(null);
+    setFlow('edit');
+    setExportError(null);
+    setStatusText(`โหลดร่างแล้ว · ${formatDraftSavedAt(draft.savedAt)}`);
+  }, [resetDoc]);
 
   const handleExport = async () => {
     if (!posterRef.current) return;
+
+    if (!authConfigured) {
+      setExportError(SUPABASE_SETUP_MESSAGE);
+      return;
+    }
+    if (!user) {
+      navigate('/login', { state: { from: ARENA_STUDIO_PATH } });
+      return;
+    }
+    if (!documentHasContent(doc)) {
+      const msg = 'อัปโหลดพื้นหลัง แบนเนอร์ หรือไอเทมอย่างน้อย 1 ชิ้น';
+      setExportError(msg);
+      return;
+    }
+    if (user.coins < ARENA_POSTER_COST) {
+      navigate('/topup');
+      return;
+    }
+
     setExporting(true);
+    setExportError(null);
+    setStatusText('กำลังสร้าง PNG...');
     try {
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const spec = getDocumentCanvasSpec(doc);
       await exportNodeToPng(
         posterRef.current,
-        `arena-breakout-${state.templateFamily}-v${state.variantId}.png`,
+        `arena-studio-${spec.width}x${spec.height}.png`,
       );
+      const { coins, charged } = await chargeArenaPoster(
+        `Arena Studio · ${spec.label} (${spec.width}×${spec.height})`,
+      );
+      patchCoins(coins);
+      await refresh();
+      setStatusText(`ดาวน์โหลดแล้ว (−${charged.toFixed(2)} คอยน์)`);
+    } catch (err) {
+      if (err instanceof StudioAuthRequiredError) {
+        navigate('/login', { state: { from: ARENA_STUDIO_PATH } });
+        return;
+      }
+      if (err instanceof InsufficientCoinsError) {
+        navigate('/topup');
+        return;
+      }
+      setExportError(formatStudioChargeError(err));
     } finally {
       setExporting(false);
     }
   };
 
-  const flowNav = (
-    <nav className="ab-flow-nav" aria-label="ขั้นตอน">
-      {(Object.keys(FLOW_LABELS) as FlowStep[]).map((key) => (
-        <button
-          key={key}
-          type="button"
-          className={flow === key ? 'active' : ''}
-          disabled={
-            (key === 'edit' && flow !== 'edit') ||
-            (key === 'pick' && flow === 'guide') ||
-            (key === 'prepare' && flow === 'guide')
-          }
-          onClick={() => {
-            if (key === 'guide') setFlow('guide');
-            if (key === 'prepare' && flow !== 'guide') setFlow('prepare');
-            if (key === 'pick' && (flow === 'pick' || flow === 'edit')) setFlow('pick');
-            if (key === 'edit' && flow === 'edit') setFlow('edit');
-          }}
-        >
-          {FLOW_LABELS[key]}
-        </button>
-      ))}
-    </nav>
-  );
-
-  const backLink = (
-    <Link to="/games" className="back-link">
-      <ArrowLeft size={16} />
-      ย้อนกลับ
-    </Link>
-  );
-
-  if (flow === 'guide') {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        {backLink}
-        {flowNav}
-        <BreakoutGuide onStart={() => setFlow('prepare')} />
-      </motion.div>
-    );
-  }
-
-  if (flow === 'prepare') {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        {backLink}
-        {flowNav}
-        <BreakoutPrepareStep
-          profileImage={profileImage}
-          characterImage={characterImage}
-          onProfileChange={(url) => {
-            setProfileImage(url);
-            if (url) {
-              setState((s) => ({ ...s, slots: { ...s.slots, profile: url } }));
-            } else {
-              setState((s) => {
-                const rest = { ...s.slots };
-                delete rest.profile;
-                return { ...s, slots: rest };
-              });
-            }
-          }}
-          onCharacterChange={(url) => {
-            setCharacterImage(url);
-            if (url) {
-              setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
-            } else {
-              setState((s) => {
-                const rest = { ...s.slots };
-                delete rest.character;
-                return { ...s, slots: rest };
-              });
-            }
-          }}
-          onContinue={() => {
-            applyPreparedToSlots();
-            setFlow('pick');
-          }}
-          onSkip={() => {
-            setProfileImage(undefined);
-            setCharacterImage(undefined);
-            setFlow('pick');
-          }}
-        />
-      </motion.div>
-    );
-  }
-
-  if (flow === 'pick') {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        {backLink}
-        {flowNav}
-        <div className="page-title-block">
-          <h1>Arena Breakout — เลือกเทมเพลต</h1>
-          <p>3 แบบหลัก · แต่ละแบบมี 6 สไตล์ย่อย (รวม 18 แบบ)</p>
-          {(profileImage || characterImage) && (
-            <p className="ab-prepared-hint">
-              รูปจากเกมพร้อมแล้ว — จะใส่ช่องโปรไฟล์/ตัวละครอัตโนมัติ
-            </p>
-          )}
-        </div>
-
-        <motion.div className="ab-template-families" layout>
-          {ARENA_TEMPLATES.map((t) => (
-            <motion.button
-              key={t.id}
-              type="button"
-              className={`ab-family-card${state.templateFamily === t.id ? ' selected' : ''}`}
-              onClick={() => setState((s) => ({ ...s, templateFamily: t.id }))}
-              whileHover={{ y: -4 }}
-            >
-              <img src={t.variants[0].preview} alt="" />
-              <h3>{t.name}</h3>
-              <p>{t.description}</p>
-            </motion.button>
-          ))}
-        </motion.div>
-
-        <h3 className="ab-variant-heading">
-          <Layers size={18} />
-          เลือกสไตล์ย่อย — {template.name}
-        </h3>
-        <motion.div className="ab-variant-grid">
-          {template.variants.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className={`ab-variant-thumb${state.variantId === v.id ? ' selected' : ''}`}
-              onClick={() => setState((s) => ({ ...s, variantId: v.id }))}
-            >
-              <img src={v.preview} alt={`แบบ ${v.id}`} />
-              <span>แบบ {v.id}</span>
-            </button>
-          ))}
-        </motion.div>
-
-        <div className="ab-pick-actions">
-          <button type="button" className="btn-ghost" onClick={() => setFlow('prepare')}>
-            แก้รูปจากเกม
-          </button>
-          <motion.button
+  const flowNav =
+    flow !== 'edit' && flow !== 'prepare' ? (
+      <nav className="ab-flow-nav" aria-label="ขั้นตอน">
+        {(['guide', 'pick'] as const).map((key) => (
+          <button
+            key={key}
             type="button"
-            className="btn-primary"
-            onClick={goToEdit}
+            className={flow === key ? 'active' : ''}
+            disabled={key === 'pick' && flow === 'guide'}
+            onClick={() => setFlow(key)}
           >
-            เริ่มจัดไอเทม
-          </motion.button>
-        </div>
-      </motion.div>
+            {FLOW_LABELS[key]}
+          </button>
+        ))}
+      </nav>
+    ) : null;
+
+  if (flow === 'edit') {
+    return (
+      <div className="arena-studio-page">
+        <BreakoutComposeEditor
+          document={doc}
+          selectedLayerId={selectedLayerId}
+          showGrid={showGrid}
+          snapGrid
+          pickerCategory={pickerCategory}
+          exporting={exporting}
+          exportLabel={exportLabel}
+          statusText={statusText}
+          exportError={exportError}
+          coinsHint={coinsHint}
+          preparedProfileImage={preparedFromDoc().profileImage ?? profileImage}
+          preparedCharacterImage={preparedFromDoc().characterImage ?? characterImage}
+          onPreparedAssetsChange={applyPreparedToDoc}
+          onDocumentChange={onDocumentChange}
+          onHistoryBegin={beginTransaction}
+          onHistoryCommit={commitTransaction}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          onSelectLayer={setSelectedLayerId}
+          onPickerCategory={setPickerCategory}
+          onShowGrid={setShowGrid}
+          onExport={handleExport}
+          posterRef={posterRef}
+          immersive
+          viewZoom={viewZoom}
+          onViewZoomChange={setViewZoom}
+          hasDraft={hasDraft}
+          onSaveDraft={handleSaveDraft}
+          onLoadDraft={handleLoadDraft}
+        />
+      </div>
     );
   }
 
   return (
-    <motion.div className="breakout-studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        hidden
-        onChange={handleFile}
-      />
-      <input
-        ref={profileInputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void openProfileCrop(f);
-          e.target.value = '';
-        }}
-      />
-      <input
-        ref={characterInputRef}
-        type="file"
-        accept="image/png,image/webp"
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) {
-            void readFileAsDataUrl(f).then((url) => {
-              setCharacterImage(url);
-              setState((s) => ({ ...s, slots: { ...s.slots, character: url } }));
-            });
-          }
-          e.target.value = '';
-        }}
-      />
-
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <Link to="/games" className="back-link arena-back">
+        <ArrowLeft size={16} />
+        เกม
+      </Link>
       {flowNav}
 
-      <div className="breakout-toolbar">
-        <Link to="/games" className="back-link">
-          <ArrowLeft size={16} />
-          เกม
-        </Link>
-        <button type="button" className="btn-ghost" onClick={() => setFlow('guide')}>
-          <BookOpen size={16} />
-          คู่มือ
-        </button>
-        <button type="button" className="btn-ghost" onClick={() => setFlow('pick')}>
-          เปลี่ยนเทมเพลต
-        </button>
-        <span className="ab-toolbar-meta">
-          {template.name} · แบบ {state.variantId}
-        </span>
-        <label className="ab-guide-toggle">
-          <input
-            type="checkbox"
-            checked={showSlotFrames}
-            onChange={(e) => setShowSlotFrames(e.target.checked)}
-          />
-          แสดงกรอบช่อง
-        </label>
-        <motion.button
-          type="button"
-          className="btn-primary"
-          onClick={handleExport}
-          disabled={exporting}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Download size={18} />
-          {exporting ? 'กำลัง export...' : 'ดาวน์โหลด PNG'}
-        </motion.button>
-      </div>
-
-      <div className="breakout-editor-layout">
-        <aside className="panel ab-item-library">
-          <section className="ab-from-game">
-            <h3>
-              <Upload size={18} />
-              รูปจากเกม
-            </h3>
-            <div className="ab-from-game-row">
-              <div className="ab-from-game-item">
-                <span>โปรไฟล์ / สถิติ</span>
-                {profileImage ? (
-                  <div className="ab-from-game-thumb">
-                    <img src={profileImage} alt="" />
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => profileInputRef.current?.click()}
-                    >
-                      <Scissors size={14} />
-                      ตัดใหม่
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-ghost ab-from-game-upload"
-                    onClick={() => profileInputRef.current?.click()}
-                  >
-                    อัปสกรีนช็อต
-                  </button>
-                )}
-              </div>
-              <div className="ab-from-game-item">
-                <span>ตัวละคร PNG</span>
-                {characterImage ? (
-                  <div className="ab-from-game-thumb ab-from-game-thumb--char">
-                    <img src={characterImage} alt="" />
-                    <button
-                      type="button"
-                      className="btn-ghost"
-                      onClick={() => characterInputRef.current?.click()}
-                    >
-                      เปลี่ยน
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn-ghost ab-from-game-upload"
-                    onClick={() => characterInputRef.current?.click()}
-                  >
-                    อัป PNG
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="ab-from-game-links">
-              {BG_REMOVAL_TOOLS.map((tool) => (
-                <a
-                  key={tool.id}
-                  href={tool.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ab-prepare-tool-link ab-prepare-tool-link--compact"
-                >
-                  <ExternalLink size={12} />
-                  {tool.name}
-                </a>
-              ))}
-            </div>
-          </section>
-
-          <div className="ab-text-fields">
-            <h3>เงิน / ราคา</h3>
-            <label className="field">
-              <span>เงินในเกม</span>
-              <input
-                value={state.money}
-                onChange={(e) => setState((s) => ({ ...s, money: e.target.value }))}
-                onFocus={() => setActiveSlot('money')}
-                placeholder="เช่น 5,337,322"
-              />
-            </label>
-            <label className="field">
-              <span>ราคาขาย</span>
-              <input
-                value={state.price}
-                onChange={(e) => setState((s) => ({ ...s, price: e.target.value }))}
-                onFocus={() => setActiveSlot('price')}
-                placeholder="เช่น 1,690 ฿"
-              />
-            </label>
-          </div>
-
-          <h3>
-            <ImageIcon size={18} />
-            คลังไอเทม
-          </h3>
-          <div className="ab-cat-tabs">
-            {ARENA_TAB_ORDER.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={pickerCategory === cat ? 'active' : ''}
-                onClick={() => setPickerCategory(cat)}
-              >
-                {ARENA_CATEGORY_LABELS[cat]}
-                <small>{getArenaItemsByCategory(cat).length}</small>
+      {flow === 'guide' && (
+        <>
+          {hasDraft && (
+            <p className="ab-draft-banner">
+              มีร่างที่บันทึกไว้ —{' '}
+              <button type="button" className="ab-draft-banner__link" onClick={handleLoadDraft}>
+                โหลดร่างต่อ
               </button>
-            ))}
-          </div>
-          <div className="ab-item-scroll">
-            {getArenaItemsByCategory(pickerCategory).map((item) => (
+              {' · '}
               <button
-                key={item.id}
                 type="button"
-                className="ab-item-thumb"
-                onClick={() => activeSlot && assignItem(item.id)}
-                title={item.name}
+                className="ab-draft-banner__link ab-draft-banner__link--muted"
+                onClick={() => {
+                  clearComposeDraft('arena-breakout');
+                  setHasDraft(false);
+                }}
               >
-                <img src={item.imageUrl} alt="" loading="lazy" />
+                ลบร่าง
               </button>
-            ))}
-          </div>
-          <p className="ab-hint">
-            {activeSlot
-              ? `คลิกรูปเพื่อใส่ในช่อง: ${activeSlotDef?.label ?? activeSlot}`
-              : 'คลิกช่องบนเทมเพลตก่อน แล้วเลือกรูป'}
-          </p>
-
-          {canUploadSlot && (
-            <button
-              type="button"
-              className="btn-ghost ab-upload-fallback"
-              onClick={() => {
-                if (activeSlot === 'profile') profileInputRef.current?.click();
-                else if (activeSlot === 'character') characterInputRef.current?.click();
-                else fileRef.current?.click();
-              }}
-            >
-              อัปโหลดจากเครื่อง
-            </button>
+            </p>
           )}
-        </aside>
-
-        <motion.div
-          className="ab-preview-area"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={springSnappy}
-        >
-          <BreakoutTemplateCanvas
-            ref={posterRef}
-            state={editorState}
-            activeSlotId={activeSlot}
-            onSlotClick={handleSlotClick}
-            onTextChange={(slotId, value) =>
-              setState((s) =>
-                slotId === 'money' ? { ...s, money: value } : { ...s, price: value },
-              )
-            }
-            showSlotFrames={showSlotFrames}
+          <BreakoutGuide
+            onStart={() => setFlow('pick')}
+            onPrepare={() => setFlow('prepare')}
           />
-        </motion.div>
-      </div>
+        </>
+      )}
 
-      <AnimatePresence>
-        {activeSlot && activeSlotDef && !['text-money', 'text-price'].includes(activeSlotDef.category) && (
-          <motion.div
-            className="ab-slot-toast"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            กำลังแก้: <strong>{activeSlotDef.label}</strong> — เลือกจากคลังซ้าย
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {flow === 'prepare' && (
+        <BreakoutPrepareStep
+          profileImage={profileImage}
+          characterImage={characterImage}
+          onProfileChange={setProfileImage}
+          onCharacterChange={setCharacterImage}
+          onContinue={() => setFlow('pick')}
+          onBack={() => setFlow('guide')}
+        />
+      )}
 
-      <AnimatePresence>
-        {cropSrc && (
-          <ImageCropModal
-            imageSrc={cropSrc}
-            title="ตัดกล่องสถิติ"
-            hint="ลากมุมกรอบให้ครอบกล่องสถิติ แล้วกดใช้รูปนี้"
-            onConfirm={handleCropConfirm}
-            onClose={() => setCropSrc(null)}
-          />
-        )}
-      </AnimatePresence>
+      {flow === 'pick' && (
+        <BreakoutStudioSetup
+          selection={canvasSelection}
+          onSelectionChange={setCanvasSelection}
+          onContinue={() => openStudio(canvasSelection)}
+          onBack={() => setFlow('guide')}
+          previewVariant="mockup"
+          preparedCount={
+            (profileImage ? 1 : 0) + (characterImage ? 1 : 0)
+          }
+        />
+      )}
     </motion.div>
   );
 }
