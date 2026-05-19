@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, LogOut, Menu, Moon, Shield, Sparkles, Sun, X } from 'lucide-react';
+import {
+  Clock,
+  Coins,
+  Gamepad2,
+  Home,
+  LogOut,
+  Mail,
+  Menu,
+  Moon,
+  Shield,
+  Sparkles,
+  Sun,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { formatCoins } from '../lib/format-coins';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,12 +24,54 @@ import { useHeaderCompact } from '../hooks/useHeaderCompact';
 import { BrandLogo } from './BrandLogo';
 import { fadeUp, springSnappy } from '../lib/motion';
 
-const navItems = [
-  { to: '/', label: 'หน้าแรก', end: true },
-  { to: '/games', label: 'เกมส์' },
-  { to: '/topup', label: 'เติมคอยน์', auth: true },
-  { to: '/history', label: 'ประวัติ', auth: true },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  end?: boolean;
+  auth?: boolean;
+  matchPath?: (pathname: string) => boolean;
+};
+
+const navItems: NavItem[] = [
+  { to: '/', label: 'หน้าแรก', icon: Home, end: true },
+  {
+    to: '/games',
+    label: 'สตูดิโอ',
+    icon: Gamepad2,
+    matchPath: (pathname) => pathname === '/games' || pathname.startsWith('/studio/'),
+  },
+  { to: '/topup', label: 'เครดิต', icon: Coins, auth: true },
+  { to: '/history', label: 'งานของฉัน', icon: Clock, auth: true },
+  { to: '/contact', label: 'ติดต่อ', icon: Mail },
 ];
+
+function navItemActive(item: NavItem, pathname: string): boolean {
+  if (item.matchPath) return item.matchPath(pathname);
+  if (item.end) return pathname === item.to;
+  return pathname === item.to || pathname.startsWith(`${item.to}/`);
+}
+
+function NavItemLink({
+  item,
+  className,
+  onNavigate,
+}: {
+  item: NavItem;
+  className: (state: { isActive: boolean }) => string;
+  onNavigate?: () => void;
+}) {
+  const { pathname } = useLocation();
+  const Icon = item.icon;
+  const isActive = navItemActive(item, pathname);
+
+  return (
+    <NavLink to={item.to} end={item.end} className={className({ isActive })} onClick={onNavigate}>
+      <Icon size={16} className="site-nav__icon" aria-hidden />
+      {item.label}
+    </NavLink>
+  );
+}
 
 export function Layout() {
   const { pathname } = useLocation();
@@ -51,53 +107,58 @@ export function Layout() {
       <motion.header
         className={`site-header${headerCompact ? ' site-header--compact' : ''}`}
         data-compact={headerCompact || undefined}
-        initial={{ opacity: 0, y: -12 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={springSnappy}
       >
-        <NavLink to="/" className="brand">
-          <span className="brand-mark" aria-hidden>
-            <BrandLogo className="brand-mark__svg" />
-          </span>
-          <span>
-            Skin<em>Cut</em>
-          </span>
-        </NavLink>
-
-        {!isStudio && !isAuthPage && (
-          <>
-            <nav className="nav-dock" aria-label="หลัก">
-              {visibleNav.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-            <button
-              type="button"
-              className="btn-icon mobile-nav-toggle"
-              aria-label={mobileNavOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
-              aria-expanded={mobileNavOpen}
-              aria-controls="mobile-nav-drawer"
-              onClick={() => setMobileNavOpen((v) => !v)}
-            >
-              {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </>
-        )}
-
         <motion.div
-          className="header-actions"
+          className="site-header__bar"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.05 }}
         >
-          <button
+          <NavLink to="/" className="brand">
+            <span className="brand-mark" aria-hidden>
+              <BrandLogo className="brand-mark__svg" />
+            </span>
+            <span>
+              Skin<em>Cut</em>
+            </span>
+          </NavLink>
+
+          {!isStudio && !isAuthPage && (
+            <nav className="site-nav" aria-label="หลัก">
+              {visibleNav.map((item) => (
+                <NavItemLink
+                  key={item.to}
+                  item={item}
+                  className={({ isActive }) => `site-nav__link${isActive ? ' active' : ''}`}
+                />
+              ))}
+            </nav>
+          )}
+
+          <motion.div
+            className="site-header__end"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            {!isStudio && !isAuthPage && (
+              <button
+                type="button"
+                className="btn-icon mobile-nav-toggle"
+                aria-label={mobileNavOpen ? 'ปิดเมนู' : 'เปิดเมนู'}
+                aria-expanded={mobileNavOpen}
+                aria-controls="mobile-nav-drawer"
+                onClick={() => setMobileNavOpen((v) => !v)}
+              >
+                {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
+
+            <div className="header-actions">
+              <button
             type="button"
             className={`btn-icon theme-toggle${theme === 'light' ? ' theme-toggle--light' : ''}`}
             aria-label={theme === 'dark' ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
@@ -142,6 +203,8 @@ export function Layout() {
               เข้าสู่ระบบ
             </Link>
           ) : null}
+            </div>
+          </motion.div>
         </motion.div>
       </motion.header>
 
@@ -161,15 +224,12 @@ export function Layout() {
             hidden={!mobileNavOpen}
           >
             {visibleNav.map((item) => (
-              <NavLink
+              <NavItemLink
                 key={item.to}
-                to={item.to}
-                end={item.end}
+                item={item}
                 className={({ isActive }) => `mobile-nav-link${isActive ? ' active' : ''}`}
-                onClick={() => setMobileNavOpen(false)}
-              >
-                {item.label}
-              </NavLink>
+                onNavigate={() => setMobileNavOpen(false)}
+              />
             ))}
           </nav>
         </>
